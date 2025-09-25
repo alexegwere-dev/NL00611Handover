@@ -1,0 +1,4051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NL00611 — Shift Handover</title>
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { } } };
+  </script>
+  <style>
+
+  html {
+  scroll-behavior: auto !important;
+  scroll-restoration: manual;
+}
+body { 
+  background: #f2f6f5;
+  overflow-anchor: none;
+}
+
+/* Prevent all automatic scrolling */
+* {
+  scroll-behavior: auto !important;
+}
+
+/* Prevent scroll jumping during updates */
+.no-scroll {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* Prevent focus jumping during updates */
+input, select, textarea {
+  position: relative;
+}
+
+/* Lock scroll position during rapid updates */
+body.updating {
+  overflow: hidden;
+  height: 100vh;
+}
+</style>
+  <!-- React (CDN UMD) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel for in-browser TSX transpile -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- SheetJS (optional; for XLSX global if needed) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react,typescript">
+    const { useState, useEffect, useMemo, useRef } = React;
+    
+// Inline Lucide-like icons used in the app
+const Icons = (()=>{
+  const S = (p, ch) => React.createElement('svg', {viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:2, ...p}, ch);
+  const P = (d, extra={}) => React.createElement('path', {d, strokeLinecap:'round', strokeLinejoin:'round', ...extra});
+  const C = (cx, cy, r, extra={}) => React.createElement('circle', {cx, cy, r, ...extra});
+  const G = (...children)=> React.createElement(React.Fragment, null, ...children);
+  return {
+    Calendar: (p)=>S(p, G(P("M8 2v2"), P("M16 2v2"), P("M3 10h18"), P("M4 6h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"))),
+    Clock: (p)=>S(p, G(C(12,12,9), P("M12 7v5l3 3"))),
+    User: (p)=>S(p, G(P("M20 21a8 8 0 1 0-16 0"), C(12,7,4))),
+    FileText: (p)=>S(p, G(P("M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"), P("M14 2v6h6"), P("M16 13H8"), P("M16 17H8"))),
+    ChevronLeft: (p)=>S(p, P("M15 18l-6-6 6-6")),
+    ChevronRight: (p)=>S(p, P("M9 6l6 6-6 6")),
+    Save: (p)=>S(p, G(P("M19 21H5a2 2 0 0 1-2-2V7l4-4h10l4 4v12a2 2 0 0 1-2 2"), P("M17 21v-8H7v8"), P("M7 3v4h7"))),
+    Search: (p)=>S(p, G(C(11,11,8), P("M21 21l-4.35-4.35"))),
+    Filter: (p)=>S(p, G(P("M22 3H2l8 9v7l4-2v-5z"))),
+    LogOut: (p)=>S(p, G(P("M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"), P("M16 17l5-5-5-5"), P("M21 12H9"))),
+    Settings: (p)=>S(p, G(C(12,12,3), P("M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V22a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H2a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 4.03 2.2l.06.06a1.65 1.65 0 0 0 1.82.33H6a1.65 1.65 0 0 0 1-1.51V2a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V6c0 .66.26 1.3.73 1.77.47.47 1.11.73 1.77.73H22a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"))),
+    UserPlus: (p)=>S(p, G(P("M16 21v-6"), P("M13 18h6"), P("M8 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"), P("M6 21v-2a4 4 0 0 1 4-4"))),
+    Trash2: (p)=>S(p, G(P("M3 6h18"), P("M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"), P("M10 11v6"), P("M14 11v6"), P("M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"))),
+    Eye: (p)=>S(p, G(P("M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"), C(12,12,3))),
+    EyeOff: (p)=>S(p, G(P("M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.8 21.8 0 0 1 5.06-6.94"), P("M1 1l22 22"), P("M9.88 9.88A3 3 0 0 0 12 15a3 3 0 0 0 2.12-.88"))),
+  };
+})();
+const { Calendar, Clock, User, FileText, ChevronLeft, ChevronRight, Save, Search, Filter, LogOut, Settings, UserPlus, Trash2, Eye, EyeOff } = Icons;
+
+    // ---- App code (from uploaded TSX) ----
+// Authentication and User Management System
+const AuthAPI = {
+  async login(username, password) {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Login failed');
+    }
+    
+    return await response.json();
+  },
+  
+  async logout(sessionId) {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId })
+    });
+  },
+  
+  async validateSession(sessionId) {
+    try {
+      const response = await fetch('/api/auth/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId })
+      });
+      
+      if (!response.ok) return null;
+      return await response.json();
+    } catch {
+      return null;
+    }
+  },
+  
+  async getAllUsers() {
+    const sessionId = localStorage.getItem('sessionId');
+    const response = await fetch('/api/users', {
+      headers: { 'X-Session-Id': sessionId }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch users');
+    }
+    
+    return await response.json();
+  },
+  
+  async createUser(userData) {
+    const sessionId = localStorage.getItem('sessionId');
+    const response = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Session-Id': sessionId 
+      },
+      body: JSON.stringify(userData)
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'User creation failed');
+    }
+    
+    return true;
+  },
+  
+  async deleteUser(username) {
+    const sessionId = localStorage.getItem('sessionId');
+    const response = await fetch(`/api/users/${username}`, {
+      method: 'DELETE',
+      headers: { 'X-Session-Id': sessionId }
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'User deletion failed');
+    }
+    
+    return true;
+  }
+};
+// Login Component
+const LoginPage = ({ onLogin }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showDemoCredentials, setShowDemoCredentials] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    
+    try {
+      const result = await AuthAPI.login(username, password);
+      localStorage.setItem('sessionId', result.sessionId);
+      onLogin(result.user);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const demoLogin = async (user) => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const result = await AuthAPI.login(user.username, user.password);
+      localStorage.setItem('sessionId', result.sessionId);
+      onLogin(result.user);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+<div className="min-h-screen bg-gradient-to-br from-teal-800 via-teal-800 to-teal-900 flex items-center justify-center p-4">
+
+      <div className="max-w-md w-full">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">NL00611- SHIFT HANDOVER</h1>
+        </div>
+
+        {/* Login Form */}
+        <div className="bg-white bg-opacity-10 rounded-lg p-8 backdrop-blur-sm shadow-2xl">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Username
+              </label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-white placeholder-opacity-70 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                placeholder="Enter your username"
+              />
+
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-white placeholder-opacity-70 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent pr-12"
+                  placeholder="Enter your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white opacity-70 hover:opacity-100"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-red-500 bg-opacity-20 border border-red-500 text-red-100 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95"
+            >
+              {loading ? 'Signing In...' : 'Sign In'}
+            </button>
+          </form>
+
+          {/* Demo Credentials Toggle */}
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => setShowDemoCredentials(!showDemoCredentials)}
+              className="text-blue-200 hover:text-white text-sm underline"
+            >
+              {showDemoCredentials ? 'Hide' : 'Show'} Demo Credentials
+            </button>
+          </div>
+
+          {showDemoCredentials && (
+            <div className="mt-4 space-y-3">
+              <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                <h3 className="text-white font-semibold mb-3">Available Demo Accounts:</h3>
+                
+                <div className="space-y-2">
+                  <div className="bg-white bg-opacity-10 rounded p-3">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-white font-medium">Admin Account</p>
+                        <p className="text-blue-200 text-sm">Username: admin | Password: admin123</p>
+                      </div>
+                      <button
+                        onClick={() => demoLogin({ username: 'admin', password: 'admin123' })}
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                        disabled={loading}
+                      >
+                        Login
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white bg-opacity-10 rounded p-3">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-white font-medium">Maintenance Team</p>
+                        <p className="text-blue-200 text-sm">Username: maintenance | Password: shift2025</p>
+                      </div>
+                      <button
+                        onClick={() => demoLogin({ username: 'maintenance', password: 'shift2025' })}
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                        disabled={loading}
+                      >
+                        Login
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-8">
+          {/* Footer content removed */}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// User Management Component (Admin Only)
+const UserManagement = ({ currentUser, onClose }) => {
+  const [users, setUsers] = useState([]);
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [newUser, setNewUser] = useState({
+    username: '',
+    password: '',
+    name: '',
+    role: 'user'
+  });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      const userList = await AuthAPI.getAllUsers();
+      setUsers(userList);
+    } catch (error) {
+      console.error('Failed to load users:', error);
+    }
+  };
+
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      await AuthAPI.createUser(newUser);
+      setNewUser({ username: '', password: '', name: '', role: 'user' });
+      setShowAddUser(false);
+      loadUsers();
+      alert('User created successfully!');
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (username) => {
+    if (confirm(`Are you sure you want to delete user "${username}"?`)) {
+      try {
+        await AuthAPI.deleteUser(username);
+        loadUsers();
+        alert('User deleted successfully!');
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-96 overflow-y-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center p-6 border-b" style={{backgroundColor: '#008080'}}>
+          <h2 className="text-xl font-bold text-white">User Management</h2>
+          <button
+            onClick={onClose}
+            className="text-white hover:text-gray-200 text-2xl font-bold"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="p-6">
+          {/* Add User Button */}
+          <div className="mb-6">
+            <button
+              onClick={() => setShowAddUser(!showAddUser)}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add New User
+            </button>
+          </div>
+
+          {/* Add User Form */}
+          {showAddUser && (
+            <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+              <h3 className="font-semibold mb-4">Add New User</h3>
+              <form onSubmit={handleAddUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Username *
+                  </label>
+                  <input
+                    type="text"
+                    value={newUser.username}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter username"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Password *
+                  </label>
+                  <input
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter password"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newUser.name}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter full name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Role *
+                  </label>
+                  <select
+                    value={newUser.role}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2 flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  >
+                    {loading ? 'Creating...' : 'Create User'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddUser(false)}
+                    className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Users List */}
+          <div className="overflow-x-auto">
+            <table className="w-full border border-gray-300">
+              <thead style={{backgroundColor: '#e6f4f0'}}>
+                <tr>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Username</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Full Name</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Role</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Created</th>
+                  <th className="border border-gray-300 px-4 py-2 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user, index) => (
+                  <tr key={user.username} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="border border-gray-300 px-4 py-2 font-medium">{user.username}</td>
+                    <td className="border border-gray-300 px-4 py-2">{user.name}</td>
+                    <td className="border border-gray-300 px-4 py-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        user.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {user.role.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-sm">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-center">
+                      {user.username !== 'admin' && (
+                        <button
+                          onClick={() => handleDeleteUser(user.username)}
+                          className="text-red-600 hover:text-red-800 p-1"
+                          title="Delete user"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Header Component with User Info
+const AppHeader = ({ user, onLogout, onUserManagement }) => {
+  return (
+    <div className="bg-gray-100 shadow-sm border-b border-green-700 px-20 py-4">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-bold text-teal-800">NL00611 - SHIFT HANDOVER</h1>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <User className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">{user.name}</span>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                user.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+              }`}>
+                {user.role.toUpperCase()}
+              </span>
+            </div>
+
+            {user.role === 'admin' && (
+              <button
+                onClick={onUserManagement}
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                title="User Management"
+              >
+                <Settings className="w-4 h-4" />
+                Users
+
+              </button>
+            )}
+
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-2 px-3 py-2 text-sm bg-teal-700 text-gray-100 rounded-lg hover:bg-green-900 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Dynamic stock check data loading from Excel file
+let stockCheckData = [];
+
+const loadStockCheckData = async () => {
+  if (stockCheckData.length > 0) {
+    return stockCheckData;
+  }
+
+  try {
+    const XLSX = await import('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+    const response = await window.fs.readFile('Random Stock List.xlsx');
+    const workbook = XLSX.read(response, {
+      cellStyles: true,
+      cellFormulas: true,
+      cellDates: true
+    });
+
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+    const dataRows = jsonData.slice(1);
+    stockCheckData = dataRows.map(row => ({
+      location: String(row[0] || '').trim(),
+      code: String(row[1] || '').trim()
+    })).filter(item => item.location && item.code);
+
+    console.log(`Loaded ${stockCheckData.length} stock check items from Excel file`);
+    return stockCheckData;
+  } catch (error) {
+    console.error('Failed to load stock check data from Excel:', error);
+    
+    stockCheckData = [
+      { location: 'M.3.2', code: '10194324' },
+      { location: 'L.1.5', code: '10194336' },
+      { location: 'E.2.3.A', code: '10195100' },
+      { location: 'K.2.11', code: '10198923' },
+      { location: 'DFT Cabinet 1 - A1.1', code: '11121001' }
+    ];
+    console.warn('Using fallback stock check data');
+    return stockCheckData;
+  }
+};
+
+const ShiftHandoverAPI = {
+  async getHandover(weekId) {
+    try {
+      const sessionId = localStorage.getItem('sessionId');
+      const response = await fetch(`/api/handover/${weekId}`, {
+        headers: { 'X-Session-Id': sessionId }
+      });
+      
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error('Failed to fetch handover');
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching handover:', error);
+      return null;
+    }
+  },
+  
+  async saveHandover(weekId, data) {
+    try {
+      const sessionId = localStorage.getItem('sessionId');
+      const response = await fetch(`/api/handover/${weekId}`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Session-Id': sessionId 
+        },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) throw new Error('Failed to save handover');
+      return true;
+    } catch (error) {
+      console.error('Error saving handover:', error);
+      throw error;
+    }
+  },
+  
+  async getAllHandovers() {
+    try {
+      const sessionId = localStorage.getItem('sessionId');
+      const response = await fetch('/api/handovers', {
+        headers: { 'X-Session-Id': sessionId }
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch handovers');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching handovers:', error);
+      return [];
+    }
+  },
+
+  async getDataImport(weekId) {
+    return this.getHandover(weekId + '-data');
+  },
+
+  async saveDataImport(weekId, data) {
+    return this.saveHandover(weekId + '-data', data);
+  },
+  
+  clearAllCache() {
+    console.log('Cache clearing not needed with server backend');
+  }
+};
+ShiftHandoverAPI.clearAllCache();
+
+// Data Import Section Component (Exact same as original)
+const DataImportSection = ({ handoverData, setHandoverData, currentWeek, currentYear, weekDates, teamEngineers }) => {
+  const [csvData, setCsvData] = useState('');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedShift, setSelectedShift] = useState('earlyShift');
+  const [selectedTeam, setSelectedTeam] = useState('YELLOW');
+  const [parsedData, setParsedData] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  const [persistentData, setPersistentData] = useState({});
+  const [additionalInfo, setAdditionalInfo] = useState('');
+  const [randomStockCheckData, setRandomStockCheckData] = useState(Array(20).fill(''));
+
+  const getWeekDates = () => {
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(weekDates.start);
+      date.setDate(weekDates.start.getDate() + i);
+      dates.push({
+        date: date,
+        formatted: date.toLocaleDateString('en-GB'),
+        dayName: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][i]
+      });
+    }
+    return dates;
+  };
+
+  const weekDatesList = getWeekDates();
+
+  useEffect(() => {
+    const loadData = async () => {
+      const weekId = `${currentYear}-CW${currentWeek + 1}`;
+      const savedData = await ShiftHandoverAPI.getDataImport(weekId);
+      if (savedData) {
+        setPersistentData(savedData);
+        if (savedData.csvData) setCsvData(savedData.csvData);
+        if (savedData.selectedDate) setSelectedDate(savedData.selectedDate);
+        if (savedData.selectedShift) setSelectedShift(savedData.selectedShift);
+        if (savedData.selectedTeam) setSelectedTeam(savedData.selectedTeam);
+        if (savedData.parsedData) setParsedData(savedData.parsedData);
+        if (savedData.additionalInfo) setAdditionalInfo(savedData.additionalInfo);
+        if (savedData.randomStockCheckData) setRandomStockCheckData(savedData.randomStockCheckData);
+      }
+    };
+    loadData();
+  }, [currentWeek, currentYear]);
+
+  useEffect(() => {
+    const saveData = async () => {
+      const weekId = `${currentYear}-CW${currentWeek + 1}`;
+      const dataToSave = {
+        csvData,
+        selectedDate,
+        selectedShift,
+        selectedTeam,
+        parsedData,
+        additionalInfo,
+        randomStockCheckData
+      };
+      await ShiftHandoverAPI.saveDataImport(weekId, dataToSave);
+      setPersistentData(dataToSave);
+    };
+    saveData();
+  }, [csvData, selectedDate, selectedShift, selectedTeam, parsedData, additionalInfo, randomStockCheckData, currentWeek, currentYear]);
+
+  const shiftTimes = {
+    earlyShift: { start: '05:30', end: '14:00', name: 'Early Shift' },
+    lateShift: { start: '13:30', end: '22:00', name: 'Late Shift' },
+    nightShift: { start: '21:30', end: '06:00', name: 'Night Shift' }
+  };
+
+  const convertTimeToHours = (timeString) => {
+    if (!timeString || typeof timeString !== 'string') return 0;
+    
+    const cleanTime = timeString.trim();
+    
+    if (/^\d+\.?\d*$/.test(cleanTime)) {
+      return parseFloat(cleanTime);
+    }
+    
+    const timeParts = cleanTime.split(':');
+    if (timeParts.length >= 2) {
+      const hours = parseInt(timeParts[0]) || 0;
+      const minutes = parseInt(timeParts[1]) || 0;
+      const seconds = timeParts.length > 2 ? parseInt(timeParts[2]) || 0 : 0;
+      
+      return hours + (minutes / 60) + (seconds / 3600);
+    }
+    
+    return 0;
+  };
+
+  const isTimeInShift = (time, shiftType, taskDate, selectedDate) => {
+    if (!time || !taskDate) return false;
+    
+    const shift = shiftTimes[shiftType];
+    const [hours, minutes] = time.split(':');
+    const timeMinutes = parseInt(hours) * 60 + parseInt(minutes);
+    
+    const [startHours, startMinutes] = shift.start.split(':');
+    const [endHours, endMinutes] = shift.end.split(':');
+    const startMinutesTotal = parseInt(startHours) * 60 + parseInt(startMinutes);
+    const endMinutesTotal = parseInt(endHours) * 60 + parseInt(endMinutes);
+    
+    if (shiftType === 'nightShift') {
+      const [selectedDay, selectedMonth, selectedYear] = selectedDate.split('/');
+      const selectedDateObj = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, parseInt(selectedDay));
+      const nextDateObj = new Date(selectedDateObj);
+      nextDateObj.setDate(selectedDateObj.getDate() + 1);
+      const nextDateString = `${nextDateObj.getDate().toString().padStart(2, '0')}/${(nextDateObj.getMonth() + 1).toString().padStart(2, '0')}/${nextDateObj.getFullYear()}`;
+      
+      let result = false;
+      
+      if (taskDate === selectedDate) {
+        result = timeMinutes >= startMinutesTotal;
+      } else if (taskDate === nextDateString) {
+        result = timeMinutes <= endMinutesTotal;
+      }
+      
+      return result;
+    } else {
+      if (taskDate !== selectedDate) {
+        return false;
+      }
+      
+      const result = timeMinutes >= startMinutesTotal && timeMinutes <= endMinutesTotal;
+      return result;
+    }
+  };
+
+  const processCsvData = () => {
+    if (!csvData.trim()) {
+      alert('Please paste CSV data first');
+      return;
+    }
+
+    if (!selectedDate) {
+      alert('Please select a date');
+      return;
+    }
+
+    setProcessing(true);
+    
+    try {
+      const lines = csvData.trim().split('\n');
+      if (lines.length < 2) {
+        alert('Invalid data - need at least header and one data row');
+        setProcessing(false);
+        return;
+      }
+
+      let separator = '\t';
+      if (!lines[0].includes('\t')) {
+        separator = lines[0].includes(';') ? ';' : ',';
+      }
+      
+      const headers = lines[0].split(separator).map(h => h.trim().toLowerCase());
+      
+      const reasonIndex = headers.findIndex(h => h.includes('reason'));
+      const statusIndex = headers.findIndex(h => h.includes('status'));
+      const operatorIndex = headers.findIndex(h => h.includes('operator in charge') || h.includes('operator'));
+      const startTimeIndex = headers.findIndex(h => h.includes('start time') || h.includes('start_time'));
+      const endTimeIndex = headers.findIndex(h => h.includes('end time') || h.includes('end_time'));
+      
+      const durationHMSIndex = headers.findIndex(h => h.includes('duration (hh:mm:ss)'));
+      const durationDecimalIndex = headers.findIndex(h => h.includes('duration (h.h)') || h.includes('duration') || h.includes('hrs'));
+      const durationIndex = durationHMSIndex !== -1 ? durationHMSIndex : durationDecimalIndex;
+      const usedHMSFormat = durationHMSIndex !== -1;
+
+      if (reasonIndex === -1 || statusIndex === -1 || operatorIndex === -1 || startTimeIndex === -1) {
+        alert(`Required columns not found. Looking for: Reason, Status, Operator, Start Time.\nFound headers: ${headers.join(', ')}`);
+        setProcessing(false);
+        return;
+      }
+
+      const currentTeamEngineers = teamEngineers[selectedTeam] || [];
+      
+      const engineerStats = {};
+      currentTeamEngineers.forEach(engineer => {
+        engineerStats[engineer] = {
+          completedPPM: 0,
+          breakdowns: 0,
+          totalHours: 0,
+          timeBookedPercentage: 0
+        };
+      });
+
+      let processedRows = 0;
+      let matchedRows = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        
+        const row = lines[i].split(separator).map(cell => cell.trim());
+        processedRows++;
+        
+        const reason = row[reasonIndex] || '';
+        const status = row[statusIndex] || '';
+        const operator = row[operatorIndex] || '';
+        const startTime = row[startTimeIndex] || '';
+        const durationRaw = row[durationIndex] || '';
+        const duration = convertTimeToHours(durationRaw);
+
+        if (status.toLowerCase() !== 'closed') {
+          continue;
+        }
+
+        if (!operator) {
+          continue;
+        }
+
+        if (!currentTeamEngineers.includes(operator)) {
+          continue;
+        }
+
+        if (!startTime.includes(' ')) {
+          continue;
+        }
+
+        const [taskDateString, taskTime] = startTime.split(' ');
+        
+        let dateMatches = false;
+        if (selectedShift === 'nightShift') {
+          const [selectedDay, selectedMonth, selectedYear] = selectedDate.split('/');
+          const selectedDateObj = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, parseInt(selectedDay));
+          const nextDateObj = new Date(selectedDateObj);
+          nextDateObj.setDate(selectedDateObj.getDate() + 1);
+          const nextDateString = `${nextDateObj.getDate().toString().padStart(2, '0')}/${(nextDateObj.getMonth() + 1).toString().padStart(2, '0')}/${nextDateObj.getFullYear()}`;
+          
+          dateMatches = (taskDateString === selectedDate) || (taskDateString === nextDateString);
+        } else {
+          dateMatches = (taskDateString === selectedDate);
+        }
+
+        if (!dateMatches) {
+          continue;
+        }
+
+        if (!isTimeInShift(taskTime, selectedShift, taskDateString, selectedDate)) {
+          continue;
+        }
+
+        matchedRows++;
+        
+        if (reason.toLowerCase().includes('ppm')) {
+          engineerStats[operator].completedPPM++;
+        }
+        
+        if (reason.toLowerCase().includes('breakdown')) {
+          engineerStats[operator].breakdowns++;
+        }
+        
+        engineerStats[operator].totalHours += duration;
+      }
+
+      Object.keys(engineerStats).forEach(engineer => {
+        const percentage = Math.min(100, Math.round((engineerStats[engineer].totalHours / 8) * 100));
+        engineerStats[engineer].timeBookedPercentage = percentage;
+      });
+
+      setParsedData({
+        engineerStats,
+        summary: {
+          totalPPM: Object.values(engineerStats).reduce((sum, stats) => sum + stats.completedPPM, 0),
+          totalBreakdowns: Object.values(engineerStats).reduce((sum, stats) => sum + stats.breakdowns, 0),
+          avgTimeBooked: Math.round(Object.values(engineerStats).reduce((sum, stats) => sum + stats.timeBookedPercentage, 0) / currentTeamEngineers.length),
+          processedRows,
+          matchedRows,
+          usedHMSFormat
+        }
+      });
+
+      if (matchedRows === 0) {
+        alert(`No matching data found!\n\nProcessed ${processedRows} rows but none matched your criteria:\n- Date: ${selectedDate}\n- Shift: ${shiftTimes[selectedShift].name}\n- Team: ${selectedTeam}\n- Status: Closed\n\nPlease check your data and selections.`);
+      }
+
+    } catch (error) {
+      console.error('Error processing CSV:', error);
+      alert(`Error processing CSV data: ${error.message}. Please check the format and try again.`);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const updateHandoverData = () => {
+    if (!parsedData || !selectedDate) {
+      alert('Please process CSV data first');
+      return;
+    }
+
+    const selectedDateObj = weekDatesList.find(d => d.formatted === selectedDate);
+    if (!selectedDateObj) {
+      alert('Selected date is not within the current week range');
+      return;
+    }
+
+    const dayIndex = weekDatesList.indexOf(selectedDateObj);
+    const dayNames = ['mondayShift', 'tuesdayShift', 'wednesdayShift', 'thursdayShift', 'fridayShift', 'saturdayShift', 'sundayShift'];
+    const targetDay = dayNames[dayIndex];
+
+    setHandoverData(prev => {
+      const newData = { ...prev };
+      
+      if (!newData[targetDay]) {
+        newData[targetDay] = {
+          earlyShift: {},
+          lateShift: {},
+          nightShift: {}
+        };
+      }
+
+      if (!newData[targetDay][selectedShift]) {
+        newData[targetDay][selectedShift] = {};
+      }
+
+      newData[targetDay][selectedShift].teamColor = selectedTeam;
+
+      newData[targetDay][selectedShift].engineers = teamEngineers[selectedTeam].map(engineerName => {
+        const stats = parsedData.engineerStats[engineerName] || {
+          completedPPM: 0,
+          breakdowns: 0,
+          timeBookedPercentage: 0,
+          totalHours: 0
+        };
+
+        return {
+          name: engineerName,
+          status: stats.timeBookedPercentage > 0 ? 'Onsite' : '',
+          timeBooked: `${stats.timeBookedPercentage}%`,
+          totalHours: stats.totalHours,
+          breakdown: stats.breakdowns.toString(),
+          completedPPM: stats.completedPPM.toString()
+        };
+      });
+
+      newData[targetDay][selectedShift].completedPPM = parsedData.summary.totalPPM.toString();
+      newData[targetDay][selectedShift].totalBreakdowns = parsedData.summary.totalBreakdowns.toString();
+
+      if (additionalInfo.trim()) {
+        newData[targetDay][selectedShift].additionalInfo = additionalInfo.trim();
+      }
+
+      if (randomStockCheckData && randomStockCheckData.some(item => item.trim() !== '')) {
+        newData[targetDay][selectedShift].randomStockCheck = [...randomStockCheckData];
+      }
+
+      return newData;
+    });
+
+    const transferredItems = [];
+    if (additionalInfo.trim()) transferredItems.push('Additional handover information');
+    if (randomStockCheckData && randomStockCheckData.some(item => item.trim() !== '')) transferredItems.push('Random stock check data');
+
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-lg">
+      <div className="text-center py-4 px-6 font-bold text-xl text-white rounded-t-lg" style={{backgroundColor: '#008080'}}>
+        CMMS DATA IMPORT & PROCESSING
+      </div>
+
+      <div className="p-6 space-y-6">
+        <div className="rounded-lg p-4" style={{backgroundColor: '#e5f2f2', border: '1px solid #008080'}}>
+          <h3 className="font-semibold mb-2" style={{color: '#021744'}}>Instructions:</h3>
+          <ul className="text-sm space-y-1" style={{color: '#021744'}}>
+            <li>• Paste your maintenance CSV data in the text area below</li>
+            <li>• Select the date from the current week (CW{currentWeek + 1})</li>
+            <li>• Select the shift type and team</li>
+            <li>• Click "PROCESS DATA"</li>
+            <li>• Click "Update Handover" to apply</li>
+          </ul>
+        </div>
+
+        <div className="rounded-lg p-4" style={{backgroundColor: '#e5f2f2', border: '1px solid #008080'}}>
+          <h3 className="font-semibold mb-3" style={{color: '#021744'}}>Current Week (CW{currentWeek + 1}) Dates:</h3>
+          <div className="grid grid-cols-7 gap-2">
+            {weekDatesList.map((dateInfo, index) => (
+              <div 
+                key={index}
+                className={`text-center p-2 rounded border cursor-pointer transition-all ${
+                  selectedDate === dateInfo.formatted 
+                    ? 'text-white border-opacity-80 shadow-lg' 
+                    : 'bg-white hover:shadow-md'
+                }`}
+                style={{
+                  backgroundColor: selectedDate === dateInfo.formatted ? '#008080' : 'white',
+                  borderColor: selectedDate === dateInfo.formatted ? '#008080' : '#d1d5db'
+                }}
+                onClick={() => setSelectedDate(dateInfo.formatted)}
+              >
+                <div className="font-semibold text-xs">{dateInfo.dayName}</div>
+                <div className="text-sm">{dateInfo.formatted}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6">
+          <div>
+                        
+            {csvData ? (
+              <div className="border border-gray-300 rounded-md overflow-auto max-h-96">
+                <table className="w-full text-xs border-collapse">
+                  <thead className="bg-gray-100 sticky top-0">
+                    <tr>
+                      {csvData.split('\n')[0] && csvData.split('\n')[0].split(/[;\t,]/).map((header, index) => (
+                        <th key={index} className="border border-gray-300 px-2 py-1 text-left font-semibold text-gray-700 min-w-24">
+                          {header.trim()}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {csvData.split('\n').slice(1).filter(row => row.trim()).slice(0, 20).map((row, rowIndex) => (
+                      <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        {row.split(/[;\t,]/).map((cell, cellIndex) => (
+                          <td key={cellIndex} className="border border-gray-300 px-2 py-1 text-gray-800">
+                            {cell.trim()}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {csvData.split('\n').length > 21 && (
+                  <div className="bg-gray-100 text-center py-2 text-sm text-gray-600">
+                    ... and {csvData.split('\n').length - 21} more rows
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <div className="text-gray-500 mb-4">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              </div>
+            )}
+            
+            <textarea
+              value={csvData}
+              onChange={(e) => setCsvData(e.target.value)}
+              className="w-full h-32 mt-3 text-xs border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+              placeholder="Paste CMMS maintenance CSV data here...&#10;&#10;Expected columns: Id, Description, Asset, Reason, Priority, Status, Operator, Start time, End time, Duration&#10;&#10;Data will appear in grid format above."
+            />
+          </div>
+
+<div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-lg bg-[#e5f2f2]">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Selected Date:
+              </label>
+              <div className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white">
+                {selectedDate ? (
+                  <div>
+                    <div className="font-semibold">{selectedDate}</div>
+                    <div className="text-xs text-gray-600">
+                      {weekDatesList.find(d => d.formatted === selectedDate)?.dayName}
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-gray-400">Click a date above</span>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Shift Type:
+              </label>
+              <select
+                value={selectedShift}
+                onChange={(e) => setSelectedShift(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="earlyShift">Early Shift (05:30 - 14:00)</option>
+                <option value="lateShift">Late Shift (13:30 - 22:00)</option>
+                <option value="nightShift">Night Shift (21:30 - 06:00)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Team:
+              </label>
+              <select
+                value={selectedTeam}
+                onChange={(e) => setSelectedTeam(e.target.value)}
+                className={`w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-white ${
+                  selectedTeam === 'RED' ? 'bg-red-500' :
+                  selectedTeam === 'BLUE' ? 'bg-blue-500' :
+                  selectedTeam === 'GREEN' ? 'bg-green-500' :
+                  selectedTeam === 'ORANGE' ? 'bg-orange-500' :
+                  'bg-yellow-500'
+                }`}
+              >
+                <option value="YELLOW" className="bg-yellow-500 text-white">Team Yellow</option>
+                <option value="BLUE" className="bg-blue-500 text-white">Team Blue</option>
+                <option value="GREEN" className="bg-green-500 text-white">Team Green</option>
+                <option value="RED" className="bg-red-500 text-white">Team Red</option>
+                <option value="ORANGE" className="bg-orange-500 text-white">Team Orange</option>
+              </select>
+            </div>
+
+            <div className="flex items-end">
+              <button
+                onClick={processCsvData}
+                disabled={processing || !selectedDate || !csvData.trim()}
+                className={`w-full px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all ${
+                  processing ? 'animate-pulse' : 'hover:shadow-lg active:scale-95'
+                }`}
+                style={{
+                  backgroundColor: (processing || !selectedDate || !csvData.trim()) ? '#008080' : '#008080'
+                }}
+              >
+                {processing ? 'Processing...' : 'PROCESS CMMS DATA'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {parsedData && (
+          <div className="border-t pt-6">
+                       
+            {parsedData && parsedData.summary.matchedRows === 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <h4 className="font-semibold text-yellow-800 mb-2">⚠️ No Matching Data Found</h4>
+                <div className="text-sm text-yellow-700 space-y-1">
+                  <p><strong>Criteria used:</strong></p>
+                  <ul className="list-disc list-inside ml-4">
+                    <li>Date: {selectedDate} ({weekDatesList.find(d => d.formatted === selectedDate)?.dayName})</li>
+                    <li>Shift: {shiftTimes[selectedShift].name} ({shiftTimes[selectedShift].start} - {shiftTimes[selectedShift].end})</li>
+                    <li>Team: {selectedTeam}</li>
+                    <li>Status: Must be "Closed"</li>
+                  </ul>
+                  <p className="mt-2"><strong>Suggestions:</strong></p>
+                  <ul className="list-disc list-inside ml-4">
+                    <li>Check that your CSV data contains tasks for the selected date</li>
+                    <li>Verify that engineer names in your data exactly match the team roster</li>
+                    <li>Ensure the Status column contains "Closed" for completed tasks</li>
+                    <li>Check that task times fall within the shift hours</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-[#e5f2f2] rounded-lg p-4 mb-4">
+              <h4 className="font-semibold mb-2">
+                {shiftTimes[selectedShift].name} on {selectedDate}
+                {selectedDate && ` (${weekDatesList.find(d => d.formatted === selectedDate)?.dayName})`}:
+              </h4>
+              <div className="grid grid-cols-4 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold text-blue-600">{parsedData.summary.totalPPM}</div>
+                  <div className="text-sm text-gray-600">Total PPM</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-red-600">{parsedData.summary.totalBreakdowns}</div>
+                  <div className="text-sm text-gray-600">Total Breakdowns</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-green-600">{parsedData.summary.avgTimeBooked}%</div>
+                  <div className="text-sm text-gray-600">Avg Time Booked</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-purple-600">{parsedData.summary.matchedRows}/{parsedData.summary.processedRows}</div>
+                  <div className="text-sm text-gray-600">Matched/Total Rows</div>
+                </div>
+              </div>
+              
+              <div className="mt-4 p-3 bg-[#b2d8d8] border border-[#b2d8d8] rounded-lg">
+                <p className="text-sm text-green-700">
+                   
+                  
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full border border-green-700 bg-white">
+                <thead style={{backgroundColor: '#e5f2f2'}}>
+                  <tr>
+                    <th className="border border-gray-300 px-3 py-2 text-left">Engineer</th>
+                    <th className="border border-gray-300 px-3 py-2 text-center">PPM Completed</th>
+                    <th className="border border-gray-300 px-3 py-2 text-center">Breakdowns</th>
+                    <th className="border border-gray-300 px-3 py-2 text-center">Time Booked</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(parsedData.engineerStats).map(([engineer, stats]) => (
+                    <tr key={engineer}>
+                      <td className="border border-gray-300 px-3 py-2 font-medium">{engineer}</td>
+                      <td className="border border-gray-300 px-3 py-2 text-center">{stats.completedPPM}</td>
+                      <td className="border border-gray-300 px-3 py-2 text-center">{stats.breakdowns}</td>
+                      <td className={`border border-gray-300 px-3 py-2 text-center font-semibold ${
+                        stats.timeBookedPercentage === 100 ? 'bg-green-100 text-green-800' :
+                        stats.timeBookedPercentage >= 80 ? 'bg-yellow-100 text-yellow-800' :
+                        stats.timeBookedPercentage > 0 ? 'bg-red-100 text-red-800' :
+                        'text-gray-400'
+                      }`}>
+                        {stats.timeBookedPercentage > 0 
+                          ? `${stats.timeBookedPercentage}% (${stats.totalHours.toFixed(2)}h)`
+                          : '0% (0.00h)'
+                        }
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-6 p-4 rounded-lg border" style={{backgroundColor: '#e5f2f2', borderColor: '#008080'}}>
+              <div className="text-lg font-medium text-gray-700 mb-2 text-center">
+                ADDITIONAL HANDOVER INFORMATION
+              </div>
+              <textarea
+                value={additionalInfo}
+                onChange={(e) => setAdditionalInfo(e.target.value)}
+                className="w-full h-32 text-sm border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{
+                  fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+                  fontWeight: '600',
+                  color: '#1f4e3d',
+                  backgroundColor: 'white'
+                }}
+                             />
+            </div>
+
+            <div className="mt-6 p-4 rounded-lg border" style={{backgroundColor: '#e5f2f2', borderColor: '#008080'}}>
+              <label className="block text-lg font-medium text-gray-700 mb-2 text-center">
+                RANDOM STOCK CHECK
+              </label>
+              <div className="border rounded-md" style={{backgroundColor: 'white', borderColor: '#008080'}}>
+                <div className="grid grid-cols-4 gap-0 border-b border-gray-300" style={{backgroundColor: '#B2D8D8'}}>
+                  <div className="border-r p-2 text-xs font-bold text-center" style={{borderColor: '#008080'}}>LOCATION</div>
+                  <div className="border-r p-2 text-xs font-bold text-center" style={{borderColor: '#008080'}}>CODE</div>
+                  <div className="border-r p-2 text-xs font-bold text-center" style={{borderColor: '#008080'}}>CMMS QUANTITY</div>
+                  <div className="p-2 text-xs font-bold text-center">LOCATION QUANTITY</div>
+                </div>
+                {Array(5).fill(0).map((_, rowIndex) => (
+                  <div key={`stock-input-${rowIndex}`} className="grid grid-cols-4 gap-0">
+                    <div className="border-r border-b h-10" style={{borderColor: '#008080'}}>
+                      <input
+                        type="text"
+                        value={randomStockCheckData?.[rowIndex * 4] || ''}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          setRandomStockCheckData(prev => {
+                            const newData = [...(prev || Array(20).fill(''))];
+                            newData[rowIndex * 4] = newValue;
+                            return newData;
+                          });
+                        }}
+                        className="w-full h-full text-xs focus:outline-none p-2 bg-white"
+                        style={{
+                          border: 'none', 
+                          background: 'transparent',
+                          fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+                          fontWeight: '600',
+                          color: '#1f4e3d'
+                        }}
+                      
+                      />
+                    </div>
+                    <div className="border-r border-b h-10" style={{borderColor: '#008080'}}>
+                      <input
+                        type="text"
+                        value={randomStockCheckData?.[rowIndex * 4 + 1] || ''}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          setRandomStockCheckData(prev => {
+                            const newData = [...(prev || Array(20).fill(''))];
+                            newData[rowIndex * 4 + 1] = newValue;
+                            return newData;
+                          });
+                        }}
+                        className="w-full h-full text-xs focus:outline-none p-2 bg-white"
+                        style={{
+                          border: 'none', 
+                          background: 'transparent',
+                          fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+                          fontWeight: '600',
+                          color: '#1f4e3d'
+                        }}
+                        
+                      />
+                    </div>
+                    <div className="border-r border-b h-10" style={{borderColor: '#008080'}}>
+                      <input
+                        type="number"
+                        value={randomStockCheckData?.[rowIndex * 4 + 2] || ''}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          setRandomStockCheckData(prev => {
+                            const newData = [...(prev || Array(20).fill(''))];
+                            newData[rowIndex * 4 + 2] = newValue;
+                            return newData;
+                          });
+                        }}
+                        className="w-full h-full text-xs focus:outline-none p-2 text-center bg-white"
+                        style={{border: 'none'}}
+                       
+                      />
+                    </div>
+                    <div className="border-b h-10" style={{borderColor: '#008080'}}>
+                      <input
+                        type="number"
+                        value={randomStockCheckData?.[rowIndex * 4 + 3] || ''}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          setRandomStockCheckData(prev => {
+                            const newData = [...(prev || Array(20).fill(''))];
+                            newData[rowIndex * 4 + 3] = newValue;
+                            return newData;
+                          });
+                        }}
+                        className={`w-full h-full text-xs focus:outline-none p-2 text-center ${
+                          randomStockCheckData?.[rowIndex * 4 + 2] && 
+                          randomStockCheckData?.[rowIndex * 4 + 3] && 
+                          parseFloat(randomStockCheckData[rowIndex * 4 + 3]) < parseFloat(randomStockCheckData[rowIndex * 4 + 2])
+                            ? 'bg-red-300'
+                            : 'bg-white'
+                        }`}
+                        style={{border: 'none'}}
+                        
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-gray-0 mt-2 text-center">
+                ↓
+              </p>
+            </div>
+
+            <div className="mt-6 text-center">
+              <button
+                onClick={updateHandoverData}
+                className="px-8 py-3 bg-teal-800 text-white rounded-md hover:bg-teal-700 font-semibold transition-all hover:shadow-lg active:scale-95"
+              >
+                UPDATE HANDOVER
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Main Shift Handover System Component (Exact same as original)
+const ShiftHandoverSystem = ({ user, onLogout, onUserManagement }) => {
+  const [currentWeek, setCurrentWeek] = useState(0);
+  const [currentDay, setCurrentDay] = useState(0);
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [handoverData, setHandoverData] = useState({});
+  const [processConfirmation, setProcessConfirmation] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [weeklyPPM, setWeeklyPPM] = useState('');
+  const [showPPMSplit, setShowPPMSplit] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState('saved');
+  const [lastSaved, setLastSaved] = useState(null);
+const [weeklyActions, setWeeklyActions] = useState({
+  healthSafety: [{ id: 1 }],
+  maintenance: [{ id: 1 }],
+  improvement: [{ id: 1 }]
+});
+
+const scrollPositionRef = useRef(0);
+
+// Preserve scroll position during state updates
+useEffect(() => {
+  const handleScroll = () => {
+    scrollPositionRef.current = window.scrollY;
+  };
+
+  window.addEventListener('scroll', handleScroll);
+  return () => window.removeEventListener('scroll', handleScroll);
+}, []);
+
+// Restore scroll position after state changes
+useEffect(() => {
+  const restoreScroll = () => {
+    if (scrollPositionRef.current > 0) {
+      window.scrollTo(0, scrollPositionRef.current);
+    }
+  };
+
+  const timer = setTimeout(restoreScroll, 0);
+  return () => clearTimeout(timer);
+}, []);
+
+
+  // Team Engineers Data - Updated team assignments
+  const teamEngineers = {
+    YELLOW: [
+      'Gomez, Brian',
+      'Saad, Manuel',
+      'Pinilla, Gabriel',
+      'Lichnos, Dimitris',
+      'Karagiannis, Georgios',
+      'Engineer 6',
+      'Engineer 7'
+    ],
+    BLUE: [
+      'Daahir, Ismail',
+      'Lagares, Angel',
+      'Tzoganis, Christos',
+      'Kyminos, Kostas',
+      'Faillace, Sebastian',
+      'Radaios, Anastasios',
+      'Volioitis, Konstantinos'
+    ],
+    GREEN: [
+      'Pronk, Dylan',
+      'Egwere, Alex',
+      'Cuevas, Victor',
+      'Toporek, Patryk',
+      'Yiliyaer, Bahetiya',
+      'Papaioannou, Georgios',
+      'Engineer 7'
+    ],
+    RED: [
+      'Polac, Paul',
+      'Kubik, Ariel',
+      'Vasilev, Krasimir',
+      'Molendijk, Miguel',
+      'Guimaraes, Carlos',
+      'Bogazoglu, Osman',
+      'Alkabalan, Muhammad'
+    ],
+    ORANGE: [
+      'Habibi, Roul',
+      'Lachman, Henk',
+      'Redan, Jermaine',
+      'Wachowiak, Adam',
+      'Zielinski, Kornel',
+      'Keuzenkamp, Michael',
+      'Moohialdin, Moohialdin'
+    ]
+  };
+
+  // All helper functions remain exactly the same
+  const getWeekDates = (year, weekNumber) => {
+    const firstDay = new Date(year, 0, 1);
+    const firstWeekStart = new Date(firstDay);
+    const dayOfWeek = firstDay.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    firstWeekStart.setDate(firstDay.getDate() - daysToMonday);
+    
+    const weekStart = new Date(firstWeekStart);
+    weekStart.setDate(firstWeekStart.getDate() + (weekNumber * 7));
+    
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    
+    return { start: weekStart, end: weekEnd };
+  };
+
+  const getCurrentWeek = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const start = new Date(year, 0, 1);
+    const dayOfWeek = start.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    start.setDate(start.getDate() - daysToMonday);
+    
+    const diff = now - start;
+    const weekNumber = Math.floor(diff / (7 * 24 * 60 * 60 * 1000));
+    return { week: Math.max(0, Math.min(51, weekNumber)), year };
+  };
+
+  const navigateWeek = (direction) => {
+    if (direction === 'prev') {
+      if (currentWeek === 0) {
+        setCurrentYear(prev => prev - 1);
+        setCurrentWeek(51);
+      } else {
+        setCurrentWeek(prev => prev - 1);
+      }
+    } else if (direction === 'next') {
+      if (currentWeek === 51) {
+        setCurrentYear(prev => prev + 1);
+        setCurrentWeek(0);
+      } else {
+        setCurrentWeek(prev => prev + 1);
+      }
+    }
+  };
+
+  const splitWeeklyPPM = () => {
+    const totalPPM = parseFloat(weeklyPPM) || 0;
+    if (totalPPM <= 0) {
+      alert('Please enter a valid PPM value greater than 0');
+      return;
+    }
+
+    const dailyPPM = totalPPM / 7;
+    const baseShiftPPM = Math.floor(dailyPPM / 3);
+    const dailyRemainder = Math.floor(dailyPPM) % 3;
+
+    let earlyPPM = baseShiftPPM;
+    let latePPM = baseShiftPPM;
+    let nightPPM = baseShiftPPM + dailyRemainder;
+
+    const currentWeeklyTotal = (earlyPPM + latePPM + nightPPM) * 7;
+    const weeklyRemainder = totalPPM - currentWeeklyTotal;
+
+    setHandoverData(prev => {
+      const newData = { ...prev };
+      const dayKeys = ['mondayShift', 'tuesdayShift', 'wednesdayShift', 'thursdayShift', 'fridayShift', 'saturdayShift', 'sundayShift'];
+      
+      dayKeys.forEach((dayKey, dayIndex) => {
+        if (newData[dayKey]) {
+          if (newData[dayKey].earlyShift) newData[dayKey].earlyShift.plannedPPM = earlyPPM.toString();
+          if (newData[dayKey].lateShift) newData[dayKey].lateShift.plannedPPM = latePPM.toString();
+          
+          if (dayIndex === 6 && newData[dayKey].nightShift) {
+            newData[dayKey].nightShift.plannedPPM = (nightPPM + weeklyRemainder).toString();
+          } else if (newData[dayKey].nightShift) {
+            newData[dayKey].nightShift.plannedPPM = nightPPM.toString();
+          }
+        }
+      });
+      
+      return newData;
+    });
+
+    const sundayNightPPM = nightPPM + weeklyRemainder;
+    const finalTotal = (earlyPPM + latePPM + nightPPM) * 6 + (earlyPPM + latePPM + sundayNightPPM);
+
+      };
+
+  const updateProcessConfirmation = (process, dayShift, value) => {
+    setProcessConfirmation(prev => ({
+      ...prev,
+      [process]: {
+        ...prev[process],
+        [dayShift]: value
+      }
+    }));
+  };
+
+  const calculateDayOverallScore = (dayIndex) => {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const day = days[dayIndex];
+    let totalProcesses = 0;
+    let yesCount = 0;
+    
+    ['E', 'L', 'N'].forEach(shift => {
+      const dayShift = `${day}_${shift}`;
+      processAreas.forEach(area => {
+        area.processes.forEach(process => {
+          totalProcesses++;
+          if (processConfirmation[process] && processConfirmation[process][dayShift] === 'YES') {
+            yesCount++;
+          }
+        });
+      });
+    });
+    
+    return { score: yesCount, total: totalProcesses };
+  };
+
+  useEffect(() => {
+    const current = getCurrentWeek();
+    setCurrentWeek(current.week);
+    setCurrentYear(current.year);
+  }, []);
+
+ useEffect(() => {
+  loadHandoverData();
+  loadProcessConfirmation();
+  loadWeeklyActions();
+}, [currentWeek, currentYear]);
+
+  // Process confirmation data structure - Exact same as original
+  const processAreas = [
+    {
+      area: "DRM",
+      processes: [
+        "Shift handover document complete",
+        "DRM KPI board updated (Nights)",
+        "DRM Action board completed"
+      ]
+    },
+    {
+      area: "Workshop/Office",
+      processes: [
+        "Workshop is to picture standard (All areas)",
+        "Workshop storage cabinets are to picture standard (All cabinets)",
+        "All personal tooling is accounted for",
+        "All remote locations are to picture standard (Ladders/ Scissor lifts/ Scooters)",
+        "Team Leader Office area is to picture standard (All areas)"
+      ]
+    },
+    {
+      area: "Spare Parts",
+      processes: [
+        "Main Spare parts area is to picture standard (All areas)",
+        "Control room aware of daily PPM schedule",
+        "Major incident reports completed if necessary"
+      ]
+    },
+    {
+      area: "CMMS",
+      processes: [
+        "No jobs left open unless passed on to the next shift",
+        "All jobs completed to true status",
+        "Shift PPM is issued",
+        "All parts used are booked out"
+      ]
+    },
+    {
+      area: "H&S",
+      processes: [
+        "PPE Worn by all",
+        "Accidents, Incidents and near misses put on to safety portal"
+      ]
+    }
+  ];
+
+  const loadHandoverData = async () => {
+    setLoading(true);
+    try {
+      const weekId = `${currentYear}-CW${currentWeek + 1}`;
+      
+      let savedData = await ShiftHandoverAPI.getHandover(weekId);
+      
+      if (savedData && savedData.weekId) {
+        setHandoverData(savedData);
+      } else {
+        const defaultShift = {
+          plannedPPM: '',
+          completedPPM: '',
+          totalBreakdowns: '',
+          accidents: '0',
+          nearMisses: '0',
+          teamColor: 'YELLOW',
+          engineers: teamEngineers.YELLOW.map(name => ({
+            name: name,
+            status: '',
+            timeBooked: '',
+            breakdown: '',
+            completedPPM: ''
+          })),
+          additionalInfo: '',
+          randomStockCheck: Array(20).fill('')
+        };
+
+        const createShiftData = () => ({
+          earlyShift: JSON.parse(JSON.stringify(defaultShift)),
+          lateShift: JSON.parse(JSON.stringify(defaultShift)),
+          nightShift: JSON.parse(JSON.stringify(defaultShift))
+        });
+
+        const initialData = {
+          weekId,
+          mondayShift: createShiftData(),
+          tuesdayShift: createShiftData(),
+          wednesdayShift: createShiftData(),
+          thursdayShift: createShiftData(),
+          fridayShift: createShiftData(),
+          saturdayShift: createShiftData(),
+          sundayShift: createShiftData()
+        };
+
+        const daysOfWeek = ['mondayShift', 'tuesdayShift', 'wednesdayShift', 'thursdayShift', 'fridayShift', 'saturdayShift', 'sundayShift'];
+        const shifts = ['earlyShift', 'lateShift', 'nightShift'];
+        
+        for (const day of daysOfWeek) {
+          for (const shift of shifts) {
+            if (initialData[day] && initialData[day][shift]) {
+              initialData[day][shift].randomStockCheck = Array(20).fill('');
+              initialData[day][shift].endOfShiftChecklist = Array(7).fill(false);
+            }
+          }
+        }
+
+        setHandoverData(initialData);
+      }
+      
+    } catch (error) {
+      console.error('Failed to load handover data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+const loadWeeklyActions = async () => {
+  try {
+    const weekId = `${currentYear}-CW${currentWeek + 1}`;
+    const savedActions = await ShiftHandoverAPI.getHandover(`${weekId}-actions`);
+    
+    if (savedActions) {
+      setWeeklyActions(savedActions);
+    } else {
+      setWeeklyActions({
+        healthSafety: [{ id: 1 }],
+        maintenance: [{ id: 1 }],
+        improvement: [{ id: 1 }]
+      });
+    }
+  } catch (error) {
+    console.error('Failed to load weekly actions:', error);
+  }
+};
+
+  const loadProcessConfirmation = async () => {
+    try {
+      const weekId = `${currentYear}-CW${currentWeek + 1}`;
+      const data = await ShiftHandoverAPI.getHandover(`${weekId}-process`);
+      
+      if (data) {
+        setProcessConfirmation(data);
+      } else {
+        const blankProcessConfirmation = {};
+        processAreas.forEach(area => {
+          area.processes.forEach(process => {
+            blankProcessConfirmation[process] = {
+              Monday_E: '', Monday_L: '', Monday_N: '',
+              Tuesday_E: '', Tuesday_L: '', Tuesday_N: '',
+              Wednesday_E: '', Wednesday_L: '', Wednesday_N: '',
+              Thursday_E: '', Thursday_L: '', Thursday_N: '',
+              Friday_E: '', Friday_L: '', Friday_N: '',
+              Saturday_E: '', Saturday_L: '', Saturday_N: '',
+              Sunday_E: '', Sunday_L: '', Sunday_N: ''
+            };
+          });
+        });
+        setProcessConfirmation(blankProcessConfirmation);
+      }
+    } catch (error) {
+      console.error('Failed to load process confirmation data:', error);
+    }
+  };
+
+ const saveHandoverData = async (showAlert = true) => {
+  const currentScrollPosition = window.pageYOffset;
+  
+  // setLoading(true);  // COMMENT OUT
+  
+  try {
+    // ... save logic ...
+  } catch (error) {
+    console.error('Failed to save handover data:', error);
+  } finally {
+    // setLoading(false);  // COMMENT OUT
+    window.scrollTo(0, currentScrollPosition);
+
+if (showAlert) {
+  
+}
+  }
+};
+
+
+ // useEffect(() => {
+//   const autoSaveTimer = setTimeout(() => {
+//     if (Object.keys(handoverData).length > 0 || Object.keys(processConfirmation).length > 0) {
+//       saveHandoverData(false);
+//     }
+//   }, 15000);
+
+//   return () => clearTimeout(autoSaveTimer);
+// }, [handoverData, processConfirmation, weeklyActions]);
+
+
+  const weekDates = getWeekDates(currentYear, currentWeek);
+  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const dayNames = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+
+  // ShiftSection component - Exact same as original but condensed for space
+  const ShiftSection = ({ shift, shiftName, data, day }) => {
+    if (!data) return null;
+
+    return (
+              <div className="border-2 border-gray-600 mb-6" style={{backgroundColor: '#008080'}}>
+        <div className="text-white text-center py-2 px-4 font-extrabold text-xl tracking-wide" style={{backgroundColor: '#008080'}}>
+          {shiftName.toUpperCase()} HANDOVER
+        </div>
+        
+        <div className="bg-white p-4">
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-5">
+              {/* KPIs, Health & Safety, Team Info, Engineers - All sections exactly as original */}
+              <div className="mb-4">
+                <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>
+                  KPI's
+                </div>
+                <div className="border border-gray-400">
+                  <div className="grid grid-cols-2 text-xs">
+                    <div className="p-1 bg-white border-r border-gray-400 font-medium">Planned PPM</div>
+                    <div className="p-1 bg-white">
+                      <input
+                        type="text"
+                        value={data.plannedPPM || ''}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          setHandoverData(prev => ({
+                            ...prev,
+                            [day]: {
+                              ...prev[day],
+                              [shift]: {
+                                ...prev[day]?.[shift],
+                                plannedPPM: newValue
+                              }
+                            }
+                          }));
+                        }}
+  className="w-full text-xs focus:outline-none p-0"
+  style={{
+    border: 'none', 
+    background: 'transparent',
+    fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+    fontWeight: '600',
+    color: '#1f4e3d'
+  }}
+/>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 text-xs border-t border-gray-400">
+                    <div className="p-1 bg-white border-r border-gray-400 font-medium">Completed PPM</div>
+                    <div className="p-1 bg-white">
+                      <input
+  type="text"
+  value={data.completedPPM || ''}
+  onChange={(e) => {
+    const newValue = e.target.value;
+    setHandoverData(prev => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        [shift]: {
+          ...prev[day]?.[shift],
+          completedPPM: newValue
+        }
+      }
+    }));
+  }}
+  className={`w-full text-xs focus:outline-none p-0 ${
+    data.plannedPPM && data.completedPPM
+      ? parseFloat(data.completedPPM) < parseFloat(data.plannedPPM)
+        ? 'bg-red-300'
+        : 'bg-green-300'
+      : ''
+  }`}
+  style={{
+    border: 'none',
+    fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+    fontWeight: '600',
+    color: '#1f4e3d'
+  }}
+/>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 text-xs border-t border-gray-400">
+                    <div className="p-1 bg-white border-r border-gray-400 font-medium">Total breakdowns</div>
+                    <div className="p-1 bg-white">
+                     <input
+  type="text"
+  value={data.totalBreakdowns || ''}
+  onChange={(e) => {
+    const newValue = e.target.value;
+    setHandoverData(prev => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        [shift]: {
+          ...prev[day]?.[shift],
+          totalBreakdowns: newValue
+        }
+      }
+    }));
+  }}
+  className="w-full text-xs border-0 focus:outline-none p-0"
+  style={{
+    fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+    fontWeight: '600',
+    color: '#1f4e3d'
+  }}
+/>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Health & Safety, Team Information, Engineers Table - All exactly as original but condensed */}
+              <div className="mb-4">
+                <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>
+                  Health & Safety
+                </div>
+                <div className="border border-gray-400">
+                  <div className="grid grid-cols-2 text-xs">
+                    <div className="p-1 bg-white border-r border-gray-400 font-medium">Accidents</div>
+                    <div className="p-1 bg-white">
+                      <input
+                        type="text"
+                        value={data.accidents || ''}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          setHandoverData(prev => ({
+                            ...prev,
+                            [day]: {
+                              ...prev[day],
+                              [shift]: {
+                                ...prev[day]?.[shift],
+                                accidents: newValue
+                              }
+                            }
+                          }));
+                        }}
+                       className="w-full text-xs border-0 focus:outline-none p-0"
+  style={{
+    fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+    fontWeight: '600',
+    color: '#1f4e3d'
+  }}
+/>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 text-xs border-t border-gray-400">
+                    <div className="p-1 bg-white border-r border-gray-400 font-medium">Near Misses</div>
+                    <div className="p-1 bg-white">
+                      <input
+                        type="text"
+                        value={data.nearMisses || ''}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          setHandoverData(prev => ({
+                            ...prev,
+                            [day]: {
+                              ...prev[day],
+                              [shift]: {
+                                ...prev[day]?.[shift],
+                                nearMisses: newValue
+                              }
+                            }
+                          }));
+                        }}
+                        className="w-full text-xs border-0 focus:outline-none p-0"
+  style={{
+    fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+    fontWeight: '600',
+    color: '#1f4e3d'
+  }}
+/>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Team and Engineers sections - Complete implementation but condensed */}
+              <div className="mb-4">
+                <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>
+                  Team Information
+                </div>
+                <div className="border border-gray-400">
+                  <div className="grid grid-cols-2 text-xs">
+                    <div className="p-1 bg-white border-r border-gray-400 font-medium">TEAM</div>
+                    <div className="p-1 font-bold text-center">
+                      <select
+                        value={data.teamColor || 'YELLOW'}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          const newEngineers = teamEngineers[newValue].map(name => ({
+                            name: name,
+                            status: '',
+                            timeBooked: '',
+                            breakdown: '',
+                            completedPPM: ''
+                          }));
+                          setHandoverData(prev => ({
+                            ...prev,
+                            [day]: {
+                              ...prev[day],
+                              [shift]: {
+                                ...prev[day]?.[shift],
+                                teamColor: newValue,
+                                engineers: newEngineers
+                              }
+                            }
+                          }));
+                        }}
+                        className={`w-full text-xs border-0 focus:outline-none font-bold text-center ${
+                          data.teamColor === 'RED' ? 'bg-red-400 text-black' :
+                          data.teamColor === 'BLUE' ? 'bg-blue-400 text-black' :
+                          data.teamColor === 'GREEN' ? 'bg-green-400 text-black' :
+                          data.teamColor === 'ORANGE' ? 'bg-orange-400 text-black' :
+                          'bg-yellow-400 text-black'
+                        }`}
+                        style={{
+                          backgroundColor: 
+                            data.teamColor === 'RED' ? '#ff9999' :
+                            data.teamColor === 'BLUE' ? '#6699ff' :
+                            data.teamColor === 'GREEN' ? '#99ff99' :
+                            data.teamColor === 'ORANGE' ? '#ffaa00' :
+                            '#ffff66'
+                        }}
+                      >
+                        <option value="YELLOW" style={{backgroundColor: '#ffff66', color: 'black'}}>YELLOW</option>
+                        <option value="BLUE" style={{backgroundColor: '#6699ff', color: 'black'}}>BLUE</option>
+                        <option value="GREEN" style={{backgroundColor: '#99ff99', color: 'black'}}>GREEN</option>
+                        <option value="RED" style={{backgroundColor: '#ff9999', color: 'black'}}>RED</option>
+                        <option value="ORANGE" style={{backgroundColor: '#ffaa00', color: 'black'}}>ORANGE</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Engineers Table - Full implementation condensed */}
+              <div className="mb-4">
+                <div className="border border-gray-400">
+                  <div className="grid grid-cols-12 text-xs font-bold text-white" style={{backgroundColor: '#008080'}}>
+                    <div className="col-span-3 p-1 border-r border-gray-400 text-center">Engineers</div>
+                    <div className="col-span-2 p-1 border-r border-gray-400 text-center">Status</div>
+                    <div className="col-span-2 p-1 border-r border-gray-400 text-center">Time Booked</div>
+                    <div className="col-span-3 p-1 border-r border-gray-400 text-center">Breakdown</div>
+                    <div className="col-span-2 p-1 text-center">PPM</div>
+                  </div>
+                  {data.engineers && data.engineers.map((engineer, index) => (
+                    <div key={`${shift}-${index}`} className="grid grid-cols-12 text-xs border-t border-gray-400">
+                      <div className="col-span-3 p-1 bg-white border-r border-gray-400 font-medium text-xs whitespace-nowrap overflow-hidden text-ellipsis">{engineer.name}</div>
+                      <div className="col-span-2 p-1 bg-white border-r border-gray-400">
+                        <select
+                          value={engineer.status || ''}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setHandoverData(prev => {
+                              const newData = { ...prev };
+                              if (!newData[day]) newData[day] = {};
+                              if (!newData[day][shift]) newData[day][shift] = {};
+                              if (!newData[day][shift].engineers) newData[day][shift].engineers = [];
+                              if (!newData[day][shift].engineers[index]) newData[day][shift].engineers[index] = {};
+                              
+                              newData[day][shift].engineers[index] = {
+                                ...newData[day][shift].engineers[index],
+                                status: newValue
+                              };
+                              return newData;
+                            });
+                          }}
+                          className={`w-full text-xs border-0 focus:outline-none p-1 font-medium rounded ${
+                            engineer.status === 'Onsite' ? 'bg-green-400 text-black' :
+                            engineer.status === 'Day off' ? 'bg-orange-400 text-black' :
+                            engineer.status === 'Sick Leave' ? 'bg-red-500 text-white' :
+                            engineer.status === 'Training' ? 'bg-green-700 text-white' :
+                            engineer.status === 'Shift Swap' ? 'bg-green-700 text-white' :
+                            'bg-gray-100 text-black'
+                          }`}
+                        >
+                          <option value="" className="bg-white text-black">Select Status</option>
+                          <option value="Onsite" className="bg-green-400 text-black">Onsite</option>
+                          <option value="Day off" className="bg-orange-400 text-black">Day off</option>
+                          <option value="Sick Leave" className="bg-red-500 text-white">Sick Leave</option>
+                          <option value="Training" className="bg-green-700 text-white">Training</option>
+                          <option value="Shift Swap" className="bg-green-700 text-white">Shift Swap</option>
+                        </select>
+                      </div>
+                      <div className="col-span-2 p-1 bg-white border-r border-gray-400 flex items-center">
+                        <div className={`w-full text-xs p-1 rounded text-center font-semibold ${
+                          engineer.timeBooked && engineer.timeBooked !== '0%' && engineer.timeBooked !== '' ? 
+                            (parseInt(engineer.timeBooked) === 100 ? 'bg-green-100 text-green-800' :
+                             parseInt(engineer.timeBooked) >= 80 ? 'bg-yellow-100 text-yellow-800' :
+                             parseInt(engineer.timeBooked) > 0 ? 'bg-red-100 text-red-800' :
+                             'bg-gray-100 text-gray-600') :
+                            'bg-gray-100 text-gray-600'
+                        }`}>
+                          {engineer.timeBooked && engineer.timeBooked !== '' ? engineer.timeBooked : '0%'}
+                          {engineer.timeBooked && engineer.timeBooked !== '0%' && engineer.timeBooked !== '' && 
+                           engineer.totalHours ? ` (${parseFloat(engineer.totalHours).toFixed(2)}h)` : 
+                           engineer.timeBooked === '0%' || !engineer.timeBooked ? ' (0.00h)' : ''}
+                        </div>
+                      </div>
+                      <div className="col-span-3 p-1 bg-white border-r border-gray-400">
+                        <input
+                          type="text"
+                          value={engineer.breakdown || ''}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setHandoverData(prev => {
+                              const newData = { ...prev };
+                              if (!newData[day]) newData[day] = {};
+                              if (!newData[day][shift]) newData[day][shift] = {};
+                              if (!newData[day][shift].engineers) newData[day][shift].engineers = [];
+                              if (!newData[day][shift].engineers[index]) newData[day][shift].engineers[index] = {};
+                              
+                              newData[day][shift].engineers[index] = {
+                                ...newData[day][shift].engineers[index],
+                                breakdown: newValue
+                              };
+                              return newData;
+                            });
+                          }}
+                          className="w-full text-xs border-0 focus:outline-none p-1 bg-gray-50 rounded text-center"
+                          style={{
+                            fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+                            fontWeight: '600',
+                            color: '#1f4e3d'
+                          }}
+                          placeholder=""
+                        />
+                      </div>
+                      <div className="col-span-2 p-1 bg-white">
+                        <input
+                          type="text"
+                          value={engineer.completedPPM || ''}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setHandoverData(prev => {
+                              const newData = { ...prev };
+                              if (!newData[day]) newData[day] = {};
+                              if (!newData[day][shift]) newData[day][shift] = {};
+                              if (!newData[day][shift].engineers) newData[day][shift].engineers = [];
+                              if (!newData[day][shift].engineers[index]) newData[day][shift].engineers[index] = {};
+                              
+                              newData[day][shift].engineers[index] = {
+                                ...newData[day][shift].engineers[index],
+                                completedPPM: newValue
+                              };
+                              return newData;
+                            });
+                          }}
+                          className="w-full text-xs border-0 focus:outline-none p-1 bg-gray-50 rounded text-center"
+                          style={{
+                            fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+                            fontWeight: '600',
+                            color: '#1f4e3d'
+                          }}
+                          placeholder=""
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>
+                  Engineers
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Handover Information and Random Stock Check - Complete implementations */}
+            <div className="col-span-4">
+              <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>
+                Additional Handover Information
+              </div>
+              <div className="border border-gray-400 bg-white" style={{height: 'calc(100% - 56px)'}}>
+                <textarea
+                  value={data.additionalInfo || ''}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    setHandoverData(prev => ({
+                      ...prev,
+                      [day]: {
+                        ...prev[day],
+                        [shift]: {
+                          ...prev[day]?.[shift],
+                          additionalInfo: newValue
+                        }
+                      }
+                    }));
+                  }}
+                  className="w-full h-full text-xs p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-left border-0"
+                  style={{
+                    minHeight: '500px', 
+                    border: 'none', 
+                    outline: 'none',
+                    fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+                    fontWeight: '600',
+                    color: '#1f4e3d'
+                  }}
+                                  />
+              </div>
+              <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>
+                
+              </div>
+            </div>
+
+            <div className="col-span-3">
+              <div className="mb-4">
+                <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>
+                  RANDOM STOCK CHECK
+                </div>
+                <div className="border border-gray-400 bg-white">
+                  <div className="grid grid-cols-4 gap-0" style={{backgroundColor: '#e6f4f0'}}>
+                    <div className="border-r border-gray-400 p-1 text-xs font-bold text-center">LOCATION</div>
+                    <div className="border-r border-gray-400 p-1 text-xs font-bold text-center">CODE</div>
+                    <div className="border-r border-gray-400 p-1 text-xs font-bold text-center">CMMS QTY</div>
+                    <div className="p-1 text-xs font-bold text-center">LOC QTY</div>
+                  </div>
+                  {Array(5).fill(0).map((_, rowIndex) => (
+                    <div key={`stock-${rowIndex}`} className="grid grid-cols-4 gap-0">
+                      <div className="border-r border-b border-gray-300 h-8">
+                        <input
+                          type="text"
+                          value={data.randomStockCheck?.[rowIndex * 4] || ''}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setHandoverData(prev => {
+                              const newData = { ...prev };
+                              if (!newData[day]) newData[day] = {};
+                              if (!newData[day][shift]) newData[day][shift] = {};
+                              if (!newData[day][shift].randomStockCheck) newData[day][shift].randomStockCheck = Array(20).fill('');
+                              
+                              const newArray = [...newData[day][shift].randomStockCheck];
+                              newArray[rowIndex * 4] = newValue;
+                              newData[day][shift].randomStockCheck = newArray;
+                              return newData;
+                            });
+                          }}
+                          className="w-full h-full text-xs focus:outline-none p-1"
+                          style={{
+                            border: 'none', 
+                            background: 'transparent',
+                            fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+                            fontWeight: '600',
+                            color: '#1f4e3d'
+                          }}
+                          placeholder=""
+                        />
+                      </div>
+                      <div className="border-r border-b border-gray-300 h-8">
+                        <input
+                          type="text"
+                          value={data.randomStockCheck?.[rowIndex * 4 + 1] || ''}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setHandoverData(prev => {
+                              const newData = { ...prev };
+                              if (!newData[day]) newData[day] = {};
+                              if (!newData[day][shift]) newData[day][shift] = {};
+                              if (!newData[day][shift].randomStockCheck) newData[day][shift].randomStockCheck = Array(20).fill('');
+                              
+                              const newArray = [...newData[day][shift].randomStockCheck];
+                              newArray[rowIndex * 4 + 1] = newValue;
+                              newData[day][shift].randomStockCheck = newArray;
+                              return newData;
+                            });
+                          }}
+                          className="w-full h-full text-xs focus:outline-none p-1"
+                          style={{
+                            border: 'none', 
+                            background: 'transparent',
+                            fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+                            fontWeight: '600',
+                            color: '#1f4e3d'
+                          }}
+                          placeholder=""
+                        />
+                      </div>
+                      <div className="border-r border-b border-gray-300 h-8">
+                        <input
+                          type="number"
+                          value={data.randomStockCheck?.[rowIndex * 4 + 2] || ''}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setHandoverData(prev => {
+                              const newData = { ...prev };
+                              if (!newData[day]) newData[day] = {};
+                              if (!newData[day][shift]) newData[day][shift] = {};
+                              if (!newData[day][shift].randomStockCheck) newData[day][shift].randomStockCheck = Array(20).fill('');
+                              
+                              const newArray = [...newData[day][shift].randomStockCheck];
+                              newArray[rowIndex * 4 + 2] = newValue;
+                              newData[day][shift].randomStockCheck = newArray;
+                              return newData;
+                            });
+                          }}
+                          className="w-full h-full text-xs focus:outline-none p-1 text-center"
+                          style={{border: 'none', background: 'transparent'}}
+                        />
+                      </div>
+                      <div className="border-b border-gray-300 h-8">
+                        <input
+                          type="number"
+                          value={data.randomStockCheck?.[rowIndex * 4 + 3] || ''}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setHandoverData(prev => {
+                              const newData = { ...prev };
+                              if (!newData[day]) newData[day] = {};
+                              if (!newData[day][shift]) newData[day][shift] = {};
+                              if (!newData[day][shift].randomStockCheck) newData[day][shift].randomStockCheck = Array(20).fill('');
+                              
+                              const newArray = [...newData[day][shift].randomStockCheck];
+                              newArray[rowIndex * 4 + 3] = newValue;
+                              newData[day][shift].randomStockCheck = newArray;
+                              return newData;
+                            });
+                          }}
+                          className={`w-full h-full text-xs focus:outline-none p-1 text-center ${
+                            data.randomStockCheck?.[rowIndex * 4 + 2] && 
+                            data.randomStockCheck?.[rowIndex * 4 + 3] && 
+                            parseFloat(data.randomStockCheck[rowIndex * 4 + 3]) < parseFloat(data.randomStockCheck[rowIndex * 4 + 2])
+                              ? 'bg-red-300'
+                              : ''
+                          }`}
+                          style={{border: 'none'}}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+                   {/* End of Shift Checklist */}
+<div className="mb-4">
+  <div
+    className="text-center py-1 px-2 font-bold text-sm text-white"
+    style={{ backgroundColor: '#008080' }}
+  >
+    END OF SHIFT CHECKLIST
+  </div>
+
+  {/* Removed the scroll styles here */}
+  <div className="border border-gray-400 bg-white">
+    {[
+      'Are all personal belongings cleared?',
+      'Is the workshop clean, tidy, and all tools stored?',
+      'Is the DRM filled and checked for pending actions?',
+      'Have all used spare parts been booked and zero-stock reported?',
+      'Have all team CMMS tasks been reviewed, updated, and closed?',
+      'Have pending Knapp/TechJira tickets been handed to the next shift?',
+      'Have all breakdowns or temporary fixes been explained to the next shift?'
+    ].map((item, index) => {
+      const isChecked = data.endOfShiftChecklist?.[index] || false;
+      return (
+        <div
+          key={`checklist-${index}`}
+          className={`flex items-start p-2 border-b border-gray-200 last:border-b-0 cursor-pointer transition-colors ${
+            isChecked ? 'bg-green-100' : 'hover:bg-gray-50'
+          }`}
+  onClick={(e) => {
+  e.preventDefault(); // Prevent default to avoid conflicts
+  const currentScrollPosition = window.pageYOffset;
+  const nextVal = !isChecked;
+  
+  setHandoverData(prev => {
+    const newData = { ...prev };
+    if (!newData[day]) newData[day] = {};
+    if (!newData[day][shift]) newData[day][shift] = {};
+    if (!newData[day][shift].endOfShiftChecklist) {
+      newData[day][shift].endOfShiftChecklist = Array(7).fill(false);
+    }
+    const newArray = [...newData[day][shift].endOfShiftChecklist];
+    newArray[index] = nextVal;
+    newData[day][shift].endOfShiftChecklist = newArray;
+    return newData;
+  });
+  
+  // Immediate scroll restoration
+  window.scrollTo(0, currentScrollPosition);
+}}
+        >
+          <input
+            type="checkbox"
+            id={`${shift}-checklist-${index}`}
+           onChange={(e) => {
+  const currentScrollPosition = window.pageYOffset;
+  const isChecked = e.target.checked;
+  
+  setHandoverData(prev => {
+    const newData = { ...prev };
+    if (!newData[day]) newData[day] = {};
+    if (!newData[day][shift]) newData[day][shift] = {};
+    if (!newData[day][shift].endOfShiftChecklist) {
+      newData[day][shift].endOfShiftChecklist = Array(7).fill(false);
+    }
+    const newArray = [...newData[day][shift].endOfShiftChecklist];
+    newArray[index] = isChecked;
+    newData[day][shift].endOfShiftChecklist = newArray;
+    return newData;
+  });
+  
+  // Immediate scroll restoration
+  window.scrollTo(0, currentScrollPosition);
+}}
+            className="mr-3 mt-1 w-4 h-4 flex-shrink-0"
+            style={{ accentColor: '#008080' }}
+            onClick={(e) => e.stopPropagation()} // prevent double toggle due to row onClick
+          />
+
+          <label
+            htmlFor={`${shift}-checklist-${index}`}
+            className={`text-xs cursor-pointer flex-1 leading-relaxed font-medium ${
+              isChecked ? 'text-green-700' : 'text-gray-700'
+            }`}
+            style={{
+              fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+              fontWeight: isChecked ? '600' : '500'
+            }}
+            onClick={(e) => e.stopPropagation()} // keep label click scoped to checkbox
+          >
+            {index + 1}. {item}
+          </label>
+        </div>
+      );
+    })}
+
+    {/* Progress indicator */}
+    <div className="p-3 bg-gray-50 border-t border-gray-200">
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-xs font-medium text-gray-600">
+          Progress: {data.endOfShiftChecklist?.filter(Boolean).length || 0}/7
+        </span>
+        <span className="text-xs font-medium text-gray-600">
+          {Math.round(((data.endOfShiftChecklist?.filter(Boolean).length || 0) / 7) * 100)}%
+        </span>
+      </div>
+      <div className="w-full bg-gray-300 rounded-full h-2">
+        <div
+          className="h-2 rounded-full transition-all duration-300"
+          style={{
+            width: `${((data.endOfShiftChecklist?.filter(Boolean).length || 0) / 7) * 100}%`,
+            backgroundColor:
+              ((data.endOfShiftChecklist?.filter(Boolean).length || 0) / 7) * 100 === 100
+                ? '#10b981'
+                : '#008080'
+          }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="text-center py-4 px-4 font-bold text-sm text-white rounded-b-lg" style={{backgroundColor: '#008080'}}>
+          
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <AppHeader 
+        user={user} 
+        onLogout={onLogout}
+        onUserManagement={onUserManagement}
+      />
+
+      <div className="p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="rounded-lg shadow-lg mb-6" style={{background: 'linear-gradient(135deg, #008080 0%, #008080 100%)'}}>
+            <div className="p-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                <div className="text-white">
+                  <h1 className="text-4xl font-bold mb-3 tracking-wide">NL00611 - SHIFT HANDOVER</h1>
+                  <div className="bg-white bg-opacity-20 rounded-lg p-3 backdrop-blur-sm">
+                    <p className="text-lg font-semibold">Calendar Week {currentWeek + 1} of {currentYear}</p>
+                    <p className="text-sm opacity-90">
+                      {weekDates.start.toLocaleDateString()} - {weekDates.end.toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4 mt-4 md:mt-0">
+                  <button
+                    onClick={() => navigateWeek('prev')}
+                    className="flex items-center px-4 py-2 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium backdrop-blur-sm transition-all"
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </button>
+                  
+                  <div className="text-center bg-white bg-opacity-20 rounded-lg p-3 backdrop-blur-sm">
+                    <p className="text-xl font-bold text-white">CW{currentWeek + 1}</p>
+                    <p className="text-sm text-white opacity-90">{currentYear}</p>
+                  </div>
+                  
+                  <button
+                    onClick={() => navigateWeek('next')}
+                    className="flex items-center px-4 py-2 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium backdrop-blur-sm transition-all"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white bg-opacity-10 rounded-lg p-4 mb-6 backdrop-blur-sm">
+                <div className="flex flex-wrap gap-2 justify-center">
+                  <button
+                    onClick={() => setCurrentDay(-1)}
+                    className={`px-4 py-3 text-sm font-bold rounded-lg transition-all transform hover:scale-105 ${
+                      currentDay === -1
+                        ? 'bg-white text-gray-800 shadow-lg'
+                        : 'bg-white bg-opacity-20 text-white hover:bg-opacity-30'
+                    }`}
+                  >
+                    DATA
+                  </button>
+                  {dayNames.map((dayName, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentDay(index)}
+                      className={`px-4 py-3 text-sm font-bold rounded-lg transition-all transform hover:scale-105 ${
+                        currentDay === index
+                          ? 'bg-white text-gray-800 shadow-lg'
+                          : 'bg-white bg-opacity-20 text-white hover:bg-opacity-30'
+                      }`}
+                    >
+                      {dayName}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setCurrentDay(7)}
+                    className={`px-4 py-3 text-sm font-bold rounded-lg transition-all transform hover:scale-105 ${
+                      currentDay === 7
+                        ? 'bg-white text-gray-800 shadow-lg'
+                        : 'bg-white bg-opacity-20 text-white hover:bg-opacity-30'
+                    }`}
+                  >
+                    PROCESS CONFIRMATION
+                  </button>
+<button
+  onClick={() => setCurrentDay(8)}
+  className={`px-4 py-3 text-sm font-bold rounded-lg transition-all transform hover:scale-105 ${
+    currentDay === 8
+      ? 'bg-white text-gray-800 shadow-lg'
+      : 'bg-white bg-opacity-20 text-white hover:bg-opacity-30'
+  }`}
+>
+  WEEKLY ACTIONS
+</button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <button
+                   onClick={() => saveHandoverData(true)}
+                    disabled={loading}
+                    className={`flex items-center px-8 py-3 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 disabled:opacity-50 transition-all font-semibold backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                      loading ? 'animate-pulse scale-95' : 'active:scale-95 active:translate-y-1'
+                    }`}
+                  >
+                    <Save className="w-5 h-5 mr-3" />
+                    {loading ? 'Auto-Saving...' : 'Save Changes'}
+                  </button>
+
+                  <div className="flex items-center gap-2 bg-white bg-opacity-20 rounded-lg px-3 py-2 backdrop-blur-sm">
+                    <div className={`w-2 h-2 rounded-full ${
+                      autoSaveStatus === 'saved' ? 'bg-green-400' :
+                      autoSaveStatus === 'saving' ? 'bg-yellow-400 animate-pulse' :
+                      'bg-red-400'
+                    }`}></div>
+                    <span className="text-white text-sm font-medium">
+                      {autoSaveStatus === 'saved' ? 'Auto-saved' :
+                       autoSaveStatus === 'saving' ? 'Saving...' :
+                       'Save failed'}
+                    </span>
+                    {lastSaved && autoSaveStatus === 'saved' && (
+                      <span className="text-white text-xs opacity-75">
+                        {lastSaved.toLocaleTimeString('en-GB', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => setShowPPMSplit(!showPPMSplit)}
+                    className="flex items-center px-6 py-3 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 transition-all font-semibold backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    <Calendar className="w-5 h-5 mr-2" />
+                    Weekly PPM Split
+                  </button>
+                </div>
+
+                {showPPMSplit && (
+                  <div className="flex items-center gap-3 bg-white bg-opacity-20 rounded-lg p-3 backdrop-blur-sm">
+                    <span className="text-white font-semibold">Total PPM:</span>
+                    <input
+                      type="number"
+                      value={weeklyPPM}
+                      onChange={(e) => setWeeklyPPM(e.target.value)}
+                      placeholder="700"
+                      className="px-3 py-2 rounded-md border-0 focus:outline-none text-gray-800 w-24"
+                    />
+                    <button
+                      onClick={splitWeeklyPPM}
+                      className="px-4 py-2 bg-white text-gray-800 rounded-md hover:bg-gray-100 font-semibold transition-all"
+                    >
+                      Split
+                    </button>
+                    <button
+                      onClick={() => {setShowPPMSplit(false); setWeeklyPPM('');}}
+                      className="px-3 py-2 bg-red-500 bg-opacity-80 text-white rounded-md hover:bg-opacity-100 font-semibold transition-all"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {loading ? (
+              <div className="text-center py-8">
+                <Clock className="w-8 h-8 animate-spin mx-auto mb-4" style={{color: '#008080'}} />
+                <p>Loading handover data...</p>
+              </div>
+            ) : currentDay === -1 ? (
+              <DataImportSection 
+                handoverData={handoverData}
+                setHandoverData={setHandoverData}
+                currentWeek={currentWeek}
+                currentYear={currentYear}
+                weekDates={weekDates}
+                teamEngineers={teamEngineers}
+              />
+            ) : currentDay === 7 ? (
+              <div className="bg-white rounded-lg shadow-lg">
+                <div className="text-center py-4 px-6 font-bold text-xl text-white rounded-t-lg" style={{backgroundColor: '#008080'}}>
+                  PROCESS CONFIRMATION BY SHIFT - CW{currentWeek + 1}
+                </div>
+
+                <div className="overflow-x-auto">
+                  <style jsx>{`
+                    .day-group {
+                      border-right: 3px solid #008080 !important;
+                    }
+                    .day-group:last-child {
+                      border-right: 1px solid #9ca3af !important;
+                    }
+                  `}</style>
+                  <table className="w-full border-collapse border border-gray-400 text-sm">
+                    <thead>
+                      <tr>
+                        <th className="border border-gray-400 p-2 font-bold text-center text-white" style={{backgroundColor: '#008080', width: '80px'}}>Area</th>
+                        <th className="border border-gray-400 p-2 font-bold text-center text-white" style={{backgroundColor: '#008080', width: '300px'}}>Process</th>
+                        <th colSpan="3" className="border border-gray-400 p-2 font-bold text-center text-white" style={{backgroundColor: '#008080'}}>Monday</th>
+                        <th colSpan="3" className="border border-gray-400 p-2 font-bold text-center text-white" style={{backgroundColor: '#008080'}}>Tuesday</th>
+                        <th colSpan="3" className="border border-gray-400 p-2 font-bold text-center text-white" style={{backgroundColor: '#008080'}}>Wednesday</th>
+                        <th colSpan="3" className="border border-gray-400 p-2 font-bold text-center text-white" style={{backgroundColor: '#008080'}}>Thursday</th>
+                        <th colSpan="3" className="border border-gray-400 p-2 font-bold text-center text-white" style={{backgroundColor: '#008080'}}>Friday</th>
+                        <th colSpan="3" className="border border-gray-400 p-2 font-bold text-center text-white" style={{backgroundColor: '#008080'}}>Saturday</th>
+                        <th colSpan="3" className="border border-gray-400 p-2 font-bold text-center text-white" style={{backgroundColor: '#008080'}}>Sunday</th>
+                      </tr>
+                      <tr>
+                        <th className="border border-gray-400 p-1 font-bold text-center text-white" style={{backgroundColor: '#008080'}}></th>
+                        <th className="border border-gray-400 p-1 font-bold text-center text-white" style={{backgroundColor: '#008080'}}></th>
+                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, dayIndex) => (
+                          <React.Fragment key={day}>
+                            <th className="border border-gray-400 p-1 font-bold text-center text-white text-xs" style={{backgroundColor: '#008080', width: '60px'}}>E</th>
+                            <th className="border border-gray-400 p-1 font-bold text-center text-white text-xs" style={{backgroundColor: '#008080', width: '60px'}}>L</th>
+                            <th className="border border-gray-400 p-1 font-bold text-center text-white text-xs" style={{backgroundColor: '#008080', width: '60px'}}>N</th>
+                          </React.Fragment>
+                        ))}
+                      </tr>
+                    </thead>
+                    
+                    <tbody>
+                      {processAreas.map((area, areaIndex) => (
+                        area.processes.map((process, processIndex) => (
+                          <tr key={`${area.area}-${processIndex}`}>
+                            {processIndex === 0 ? (
+                              <td 
+                                className="border border-gray-400 p-2 font-bold text-center text-white vertical-text"
+                                style={{backgroundColor: '#008080'}}
+                                rowSpan={area.processes.length}
+                              >
+                                {area.area}
+                              </td>
+                            ) : null}
+                            <td className="border border-gray-400 p-2 text-left">{process}</td>
+                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, dayIndex) => (
+                              <React.Fragment key={`${process}-${day}`}>
+                                {['E', 'L', 'N'].map((shift, shiftIndex) => {
+                                  const dayShift = `${day}_${shift}`;
+                                  const isLastShiftOfDay = shiftIndex === 2 && dayIndex < 6;
+                                  return (
+                                    <td key={`${process}-${dayShift}`} className={`border border-gray-400 p-1 text-center ${isLastShiftOfDay ? 'day-group' : ''}`}>
+                                      <select
+                                        value={processConfirmation[process]?.[dayShift] || ''}
+                                        onChange={(e) => updateProcessConfirmation(process, dayShift, e.target.value)}
+                                        className={`w-full font-bold text-center border-0 focus:outline-none rounded p-1 ${
+                                          processConfirmation[process]?.[dayShift] === 'YES' ? 'bg-green-400 text-black text-xs' :
+                                          processConfirmation[process]?.[dayShift] === 'NO' ? 'bg-red-400 text-black text-xs' :
+                                          'bg-gray-100 text-black text-xs'
+                                        }`}
+                                        style={{fontSize: '10px'}}
+                                      >
+                                        <option value="" className="bg-white text-black"></option>
+                                        <option value="YES" className="bg-green-400 text-black">YES</option>
+                                        <option value="NO" className="bg-red-400 text-black">NO</option>
+                                      </select>
+                                    </td>
+                                  );
+                                })}
+                              </React.Fragment>
+                            ))}
+                          </tr>
+                        ))
+                      ))}
+                      
+                      <tr>
+                        <td className="border border-gray-400 p-2 font-bold text-center text-white" style={{backgroundColor: '#008080'}}>Score</td>
+                        <td className="border border-gray-400 p-2 font-bold text-left">Score out of 51</td>
+                        {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => {
+                          const dayScore = calculateDayOverallScore(dayIndex);
+                          return (
+                            <React.Fragment key={`score-day-${dayIndex}`}>
+                              <td colSpan="3" className={`border border-gray-400 p-2 text-center font-bold ${dayIndex < 6 ? 'day-group' : ''}`}>
+                                {dayScore.score}
+                              </td>
+                            </React.Fragment>
+                          );
+                        })}
+                      </tr>
+                      
+                      <tr>
+                        <td className="border border-gray-400 p-2 font-bold text-center text-white" style={{backgroundColor: '#008080'}}></td>
+                        <td className="border border-gray-400 p-2 font-bold text-left">Score %</td>
+                        {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => {
+                          const dayScore = calculateDayOverallScore(dayIndex);
+                          const percentage = dayScore.total > 0 ? Math.round((dayScore.score / dayScore.total) * 100) : 0;
+                          return (
+                            <React.Fragment key={`percentage-day-${dayIndex}`}>
+                              <td colSpan="3" className={`border border-gray-400 p-2 text-center font-bold ${dayIndex < 6 ? 'day-group' : ''} ${
+                                percentage === 100 ? 'bg-green-200' :
+                                percentage >= 80 ? 'bg-yellow-200' :
+                                percentage > 0 ? 'bg-red-200' : ''
+                              }`}>
+                                {percentage > 0 ? `${percentage.toFixed(2)}%` : ''}
+                              </td>
+                            </React.Fragment>
+                          );
+                        })}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+) : currentDay === 8 ? (
+  <div className="bg-white rounded-lg shadow-lg">
+    <div className="text-center py-4 px-6 font-bold text-xl text-white rounded-t-lg" style={{backgroundColor: '#008080'}}>
+      NL00611 - WEEKLY ACTIONS
+    </div>
+    <div className="p-6">
+      <div className="border rounded p-4 bg-gray-200">
+       
+        <div className="p-6 space-y-5">
+
+
+  {/* Maintenance Audit Actions */}
+<div className="border-2 border-teal-700 rounded-lg overflow-hidden">
+  <div className="text-white py-3 px-4 text-center font-bold" style={{backgroundColor: '#008080'}}>
+    MAINTENANCE AUDIT ACTIONS
+  </div>
+  <div className="p-4 bg-gray-50">
+    {weeklyActions.maintenance.map((action) => (
+      <div key={action.id} className="border-2 border-teal-600 p-4 rounded bg-gray-100 mb-4">
+        <div className="space-y-4">
+          <div>
+            <label className="block font-bold mb-2 text-sm">Action Description:</label>
+            <textarea 
+              style={{
+                fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+                fontWeight: '600',
+                color: '#1f4e3d'
+              }}
+              className="w-full h-20 text-sm border border-gray-300 rounded p-3"
+              placeholder="Describe the maintenance action..."
+              value={action.description || ''}
+              onChange={(e) => {
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  maintenance: prev.maintenance.map(item => 
+                    item.id === action.id ? {...item, description: e.target.value} : item
+                  )
+                }));
+              }}
+            />
+          </div>
+          
+          <div>
+            <label className="block font-bold mb-2 text-sm">Assigned To:</label>
+            <select
+              className="w-full border border-gray-300 rounded p-3 font-bold text-sm"
+              value={action.assignedTo || ''}
+              onChange={(e) => {
+                const team = e.target.value;
+                const textColors = {
+                  'RED': '#dc2626',
+                  'BLUE': '#2563eb', 
+                  'ORANGE': '#ff7900',
+                  'GREEN': '#16a34a',
+                  'YELLOW': '#e9d700'
+                };
+                
+                if (team && textColors[team]) {
+                  e.target.style.color = textColors[team];
+                  e.target.style.fontWeight = 'bold';
+                  e.target.style.backgroundColor = '';
+                } else {
+                  e.target.style.color = '';
+                  e.target.style.fontWeight = '';
+                  e.target.style.backgroundColor = '';
+                }
+                
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  maintenance: prev.maintenance.map(item => 
+                    item.id === action.id ? {...item, assignedTo: team} : item
+                  )
+                }));
+              }}
+              style={{
+                color: action.assignedTo ? (() => {
+                  const textColors = {
+                    'RED': '#dc2626',
+                    'BLUE': '#2563eb', 
+                    'ORANGE': '#ff7900',
+                    'GREEN': '#16a34a',
+                    'YELLOW': '#e9d700'
+                  };
+                  return textColors[action.assignedTo] || '';
+                })() : '',
+                fontWeight: action.assignedTo ? 'bold' : '',
+                backgroundColor: ''
+              }}
+            >
+              <option value="">Select Team</option>
+              <option value="RED">TEAM RED</option>
+              <option value="BLUE">TEAM BLUE</option>
+              <option value="ORANGE">TEAM ORANGE</option>
+              <option value="GREEN">TEAM GREEN</option>
+              <option value="YELLOW">TEAM YELLOW</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block font-bold mb-2 text-sm">Due Date:</label>
+            <input 
+              type="date" 
+              className="w-full border border-gray-300 rounded p-3 text-sm"
+              value={action.dueDate || ''}
+              onChange={(e) => {
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  maintenance: prev.maintenance.map(item => 
+                    item.id === action.id ? {...item, dueDate: e.target.value} : item
+                  )
+                }));
+              }}
+            />
+          </div>
+          
+          <div>
+            <label className="block font-bold mb-2 text-sm">Priority:</label>
+            <select 
+              className="w-full border border-gray-300 rounded p-3 text-sm font-bold"
+              value={action.priority || 'MEDIUM'}
+              onChange={(e) => {
+                const priority = e.target.value;
+                const priorityColors = {
+                  'LOW': '#16a34a',
+                  'MEDIUM': '#d97706',
+                  'HIGH': '#dc2626'
+                };
+                
+                if (priorityColors[priority]) {
+                  e.target.style.color = priorityColors[priority];
+                  e.target.style.fontWeight = 'bold';
+                  e.target.style.backgroundColor = '';
+                } else {
+                  e.target.style.color = '';
+                  e.target.style.fontWeight = '';
+                  e.target.style.backgroundColor = '';
+                }
+                
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  maintenance: prev.maintenance.map(item => 
+                    item.id === action.id ? {...item, priority: priority} : item
+                  )
+                }));
+              }}
+              style={{
+                color: action.priority ? (() => {
+                  const priorityColors = {
+                    'LOW': '#16a34a',
+                    'MEDIUM': '#d97706',
+                    'HIGH': '#dc2626'
+                  };
+                  return priorityColors[action.priority] || '';
+                })() : '',
+                fontWeight: action.priority ? 'bold' : '',
+                backgroundColor: ''
+              }}
+            >
+              <option value="LOW">LOW</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="HIGH">HIGH</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block font-bold mb-2 text-sm">Status:</label>
+            <select 
+              className="w-full border border-gray-300 rounded p-3 text-sm font-bold"
+              value={action.status || 'OPEN'}
+              onChange={(e) => {
+                const status = e.target.value;
+                const statusColors = {
+                  'OPEN': '#d97706',
+                  'IN PROGRESS': '#16a34a',
+                  'ON HOLD': '#dc2626',
+                  'COMPLETED': '#059669'
+                };
+                
+                if (statusColors[status]) {
+                  e.target.style.color = statusColors[status];
+                  e.target.style.fontWeight = 'bold';
+                  e.target.style.backgroundColor = '';
+                } else {
+                  e.target.style.color = '';
+                  e.target.style.fontWeight = '';
+                  e.target.style.backgroundColor = '';
+                }
+                
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  maintenance: prev.maintenance.map(item => 
+                    item.id === action.id ? {...item, status: status} : item
+                  )
+                }));
+              }}
+              style={{
+                color: action.status ? (() => {
+                  const statusColors = {
+                    'OPEN': '#d97706',
+                    'IN PROGRESS': '#16a34a',
+                    'ON HOLD': '#dc2626',
+                    'COMPLETED': '#059669'
+                  };
+                  return statusColors[action.status] || '';
+                })() : '',
+                fontWeight: action.status ? 'bold' : '',
+                backgroundColor: ''
+              }}
+            >
+              <option value="OPEN">OPEN</option>
+              <option value="IN PROGRESS">IN PROGRESS</option>
+              <option value="ON HOLD">ON HOLD</option>
+              <option value="COMPLETED">COMPLETED</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block font-bold mb-2 text-sm">Feedback / Comments:</label>
+            <textarea 
+              style={{
+                fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+                fontWeight: '600',
+                color: '#1f4e3d'
+              }}
+              className="w-full h-20 text-sm border border-gray-300 rounded p-3"
+              placeholder="Additional notes..."
+              value={action.comments || ''}
+              onChange={(e) => {
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  maintenance: prev.maintenance.map(item => 
+                    item.id === action.id ? {...item, comments: e.target.value} : item
+                  )
+                }));
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Multiple Images Upload Section */}
+        <div>
+          <label className="block font-bold mb-2 text-sm">Attach Images (Optional):</label>
+          <div className="relative">
+            <input 
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files);
+                if (files.length > 0) {
+                  files.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      setWeeklyActions(prev => ({
+                        ...prev,
+                        maintenance: prev.maintenance.map(item => 
+                          item.id === action.id ? {
+                            ...item, 
+                            images: [...(item.images || []), {
+                              id: Date.now() + Math.random(),
+                              data: event.target.result,
+                              name: file.name
+                            }]
+                          } : item
+                        )
+                      }));
+                    };
+                    reader.readAsDataURL(file);
+                  });
+                }
+                // Clear the input so the same file can be selected again
+                e.target.value = '';
+              }}
+              className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none focus:border-teal-500 file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-600 file:text-white hover:file:bg-teal-700"
+            />
+          </div>
+          
+          {/* Display uploaded images */}
+          {action.images && action.images.length > 0 && (
+            <div className="mt-3 space-y-3">
+              {action.images.map((image) => (
+                <div key={image.id} className="p-3 border-2 border-teal-200 rounded-lg bg-white relative">
+                  <img 
+                    src={image.data} 
+                    alt="Uploaded attachment" 
+                    className="max-w-full max-h-48 border border-gray-300 rounded-lg shadow-sm"
+                  />
+                  <button
+                    onClick={() => {
+                      setWeeklyActions(prev => ({
+                        ...prev,
+                        maintenance: prev.maintenance.map(item => 
+                          item.id === action.id ? {
+                            ...item, 
+                            images: item.images.filter(img => img.id !== image.id)
+                          } : item
+                        )
+                      }));
+                    }}
+                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded font-medium transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4">
+          <button 
+            className="bg-teal-700 text-white px-4 py-2 rounded hover:bg-green-700"
+            onClick={() => {
+              setWeeklyActions(prev => ({
+                ...prev,
+                maintenance: prev.maintenance.filter(item => item.id !== action.id)
+              }));
+            }}
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+    ))}
+    <button 
+      className="bg-teal-600 text-white px-4 py-2 rounded hover:bg-green-700"
+      onClick={() => {
+        setWeeklyActions(prev => ({
+          ...prev,
+          maintenance: [...prev.maintenance, { id: Date.now() }]
+        }));
+      }}
+    >
+     Add Maintenance Audit Action
+    </button>
+  </div>
+</div>
+
+ {/* Health & Safety Actions */}
+<div className="border-2 border-red-700 rounded-lg overflow-hidden">
+  <div className="text-white py-3 px-4 text-center font-bold" style={{backgroundColor: '#dc2626'}}>
+    HEALTH & SAFETY ACTIONS
+  </div>
+  <div className="p-4 bg-gray-50">
+    {weeklyActions.healthSafety.map((action) => (
+      <div key={action.id} className="border-2 border-red-600 p-4 rounded bg-gray-100 mb-4">
+        <div className="space-y-4">
+          <div>
+            <label className="block font-bold mb-2 text-sm">Action Description:</label>
+            <textarea 
+              style={{
+                fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+                fontWeight: '600',
+                color: '#7f1d1d'
+              }}
+              className="w-full h-20 text-sm border border-gray-300 rounded p-3"
+              placeholder="Describe the safety action..."
+              value={action.description || ''}
+              onChange={(e) => {
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  healthSafety: prev.healthSafety.map(item => 
+                    item.id === action.id ? {...item, description: e.target.value} : item
+                  )
+                }));
+              }}
+            />
+          </div>
+          
+          <div>
+            <label className="block font-bold mb-2 text-sm">Assigned To:</label>
+            <select
+              className="w-full border border-gray-300 rounded p-3 font-bold text-sm"
+              value={action.assignedTo || ''}
+              onChange={(e) => {
+                const team = e.target.value;
+                const textColors = {
+                  'RED': '#dc2626',
+                  'BLUE': '#2563eb', 
+                  'ORANGE': '#ff7900',
+                  'GREEN': '#16a34a',
+                  'YELLOW': '#e9d700'
+                };
+                
+                if (team && textColors[team]) {
+                  e.target.style.color = textColors[team];
+                  e.target.style.fontWeight = 'bold';
+                  e.target.style.backgroundColor = '';
+                } else {
+                  e.target.style.color = '';
+                  e.target.style.fontWeight = '';
+                  e.target.style.backgroundColor = '';
+                }
+                
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  healthSafety: prev.healthSafety.map(item => 
+                    item.id === action.id ? {...item, assignedTo: team} : item
+                  )
+                }));
+              }}
+              style={{
+                color: action.assignedTo ? (() => {
+                  const textColors = {
+                    'RED': '#dc2626',
+                    'BLUE': '#2563eb', 
+                    'ORANGE': '#ff7900',
+                    'GREEN': '#16a34a',
+                    'YELLOW': '#e9d700'
+                  };
+                  return textColors[action.assignedTo] || '';
+                })() : '',
+                fontWeight: action.assignedTo ? 'bold' : '',
+                backgroundColor: ''
+              }}
+            >
+              <option value="">Select Team</option>
+              <option value="RED">TEAM RED</option>
+              <option value="BLUE">TEAM BLUE</option>
+              <option value="ORANGE">TEAM ORANGE</option>
+              <option value="GREEN">TEAM GREEN</option>
+              <option value="YELLOW">TEAM YELLOW</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block font-bold mb-2 text-sm">Due Date:</label>
+            <input 
+              type="date" 
+              className="w-full border border-gray-300 rounded p-3 text-sm"
+              value={action.dueDate || ''}
+              onChange={(e) => {
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  healthSafety: prev.healthSafety.map(item => 
+                    item.id === action.id ? {...item, dueDate: e.target.value} : item
+                  )
+                }));
+              }}
+            />
+          </div>
+          
+          <div>
+            <label className="block font-bold mb-2 text-sm">Priority:</label>
+            <select 
+              className="w-full border border-gray-300 rounded p-3 text-sm font-bold"
+              value={action.priority || 'MEDIUM'}
+              onChange={(e) => {
+                const priority = e.target.value;
+                const priorityColors = {
+                  'LOW': '#16a34a',
+                  'MEDIUM': '#d97706',
+                  'HIGH': '#dc2626'
+                };
+                
+                if (priorityColors[priority]) {
+                  e.target.style.color = priorityColors[priority];
+                  e.target.style.fontWeight = 'bold';
+                  e.target.style.backgroundColor = '';
+                } else {
+                  e.target.style.color = '';
+                  e.target.style.fontWeight = '';
+                  e.target.style.backgroundColor = '';
+                }
+                
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  healthSafety: prev.healthSafety.map(item => 
+                    item.id === action.id ? {...item, priority: priority} : item
+                  )
+                }));
+              }}
+              style={{
+                color: action.priority ? (() => {
+                  const priorityColors = {
+                    'LOW': '#16a34a',
+                    'MEDIUM': '#d97706',
+                    'HIGH': '#dc2626'
+                  };
+                  return priorityColors[action.priority] || '';
+                })() : '',
+                fontWeight: action.priority ? 'bold' : '',
+                backgroundColor: ''
+              }}
+            >
+              <option value="LOW">LOW</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="HIGH">HIGH</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block font-bold mb-2 text-sm">Status:</label>
+            <select 
+              className="w-full border border-gray-300 rounded p-3 text-sm font-bold"
+              value={action.status || 'OPEN'}
+              onChange={(e) => {
+                const status = e.target.value;
+                const statusColors = {
+                  'OPEN': '#d97706',
+                  'IN PROGRESS': '#16a34a',
+                  'ON HOLD': '#dc2626',
+                  'COMPLETED': '#059669'
+                };
+                
+                if (statusColors[status]) {
+                  e.target.style.color = statusColors[status];
+                  e.target.style.fontWeight = 'bold';
+                  e.target.style.backgroundColor = '';
+                } else {
+                  e.target.style.color = '';
+                  e.target.style.fontWeight = '';
+                  e.target.style.backgroundColor = '';
+                }
+                
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  healthSafety: prev.healthSafety.map(item => 
+                    item.id === action.id ? {...item, status: status} : item
+                  )
+                }));
+              }}
+              style={{
+                color: action.status ? (() => {
+                  const statusColors = {
+                    'OPEN': '#d97706',
+                    'IN PROGRESS': '#16a34a',
+                    'ON HOLD': '#dc2626',
+                    'COMPLETED': '#059669'
+                  };
+                  return statusColors[action.status] || '';
+                })() : '',
+                fontWeight: action.status ? 'bold' : '',
+                backgroundColor: ''
+              }}
+            >
+              <option value="OPEN">OPEN</option>
+              <option value="IN PROGRESS">IN PROGRESS</option>
+              <option value="ON HOLD">ON HOLD</option>
+              <option value="COMPLETED">COMPLETED</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block font-bold mb-2 text-sm">Feedback / Comments:</label>
+            <textarea 
+              style={{
+                fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+                fontWeight: '600',
+                color: '#7f1d1d'
+              }}
+              className="w-full h-20 text-sm border border-gray-300 rounded p-3"
+              placeholder="Additional notes..."
+              value={action.comments || ''}
+              onChange={(e) => {
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  healthSafety: prev.healthSafety.map(item => 
+                    item.id === action.id ? {...item, comments: e.target.value} : item
+                  )
+                }));
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Multiple Images Upload Section */}
+        <div>
+          <label className="block font-bold mb-2 text-sm">Attach Images (Optional):</label>
+          <div className="relative">
+            <input 
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files);
+                if (files.length > 0) {
+                  files.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      setWeeklyActions(prev => ({
+                        ...prev,
+                        healthSafety: prev.healthSafety.map(item => 
+                          item.id === action.id ? {
+                            ...item, 
+                            images: [...(item.images || []), {
+                              id: Date.now() + Math.random(),
+                              data: event.target.result,
+                              name: file.name
+                            }]
+                          } : item
+                        )
+                      }));
+                    };
+                    reader.readAsDataURL(file);
+                  });
+                }
+                // Clear the input so the same file can be selected again
+                e.target.value = '';
+              }}
+              className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none focus:border-red-500 file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-700"
+            />
+          </div>
+          
+          {/* Display uploaded images */}
+          {action.images && action.images.length > 0 && (
+            <div className="mt-3 space-y-3">
+              {action.images.map((image) => (
+                <div key={image.id} className="p-3 border-2 border-red-200 rounded-lg bg-white relative">
+                  <img 
+                    src={image.data} 
+                    alt="Uploaded attachment" 
+                    className="max-w-full max-h-48 border border-gray-300 rounded-lg shadow-sm"
+                  />
+                  <button
+                    onClick={() => {
+                      setWeeklyActions(prev => ({
+                        ...prev,
+                        healthSafety: prev.healthSafety.map(item => 
+                          item.id === action.id ? {
+                            ...item, 
+                            images: item.images.filter(img => img.id !== image.id)
+                          } : item
+                        )
+                      }));
+                    }}
+                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded font-medium transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4">
+          <button 
+            className="bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800"
+            onClick={() => {
+              setWeeklyActions(prev => ({
+                ...prev,
+                healthSafety: prev.healthSafety.filter(item => item.id !== action.id)
+              }));
+            }}
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+    ))}
+    <button 
+      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+      onClick={() => {
+        setWeeklyActions(prev => ({
+          ...prev,
+          healthSafety: [...prev.healthSafety, { id: Date.now() }]
+        }));
+      }}
+    >
+      Add Health & Safety Action
+    </button>
+  </div>
+</div>
+
+  {/* Improvement Actions */}
+<div className="border-2 border-blue-700 rounded-lg overflow-hidden">
+  <div className="text-white py-3 px-4 text-center font-bold" style={{backgroundColor: '#2563eb'}}>
+    IMPROVEMENT ACTIONS
+  </div>
+  <div className="p-4 bg-gray-50">
+    {weeklyActions.improvement.map((action) => (
+      <div key={action.id} className="border-2 border-blue-600 p-4 rounded bg-gray-100 mb-4">
+        <div className="space-y-4">
+          <div>
+            <label className="block font-bold mb-2 text-sm">Action Description:</label>
+            <textarea 
+              style={{
+                fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+                fontWeight: '600',
+                color: '#1e3a8a'
+              }}
+              className="w-full h-20 text-sm border border-gray-300 rounded p-3"
+              placeholder="Describe the improvement action..."
+              value={action.description || ''}
+              onChange={(e) => {
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  improvement: prev.improvement.map(item => 
+                    item.id === action.id ? {...item, description: e.target.value} : item
+                  )
+                }));
+              }}
+            />
+          </div>
+          
+          <div>
+            <label className="block font-bold mb-2 text-sm">Assigned To:</label>
+            <select
+              className="w-full border border-gray-300 rounded p-3 font-bold text-sm"
+              value={action.assignedTo || ''}
+              onChange={(e) => {
+                const team = e.target.value;
+                const textColors = {
+                  'RED': '#dc2626',
+                  'BLUE': '#2563eb', 
+                  'ORANGE': '#ff7900',
+                  'GREEN': '#16a34a',
+                  'YELLOW': '#e9d700'
+                };
+                
+                if (team && textColors[team]) {
+                  e.target.style.color = textColors[team];
+                  e.target.style.fontWeight = 'bold';
+                  e.target.style.backgroundColor = '';
+                } else {
+                  e.target.style.color = '';
+                  e.target.style.fontWeight = '';
+                  e.target.style.backgroundColor = '';
+                }
+                
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  improvement: prev.improvement.map(item => 
+                    item.id === action.id ? {...item, assignedTo: team} : item
+                  )
+                }));
+              }}
+              style={{
+                color: action.assignedTo ? (() => {
+                  const textColors = {
+                    'RED': '#dc2626',
+                    'BLUE': '#2563eb', 
+                    'ORANGE': '#ff7900',
+                    'GREEN': '#16a34a',
+                    'YELLOW': '#e9d700'
+                  };
+                  return textColors[action.assignedTo] || '';
+                })() : '',
+                fontWeight: action.assignedTo ? 'bold' : '',
+                backgroundColor: ''
+              }}
+            >
+              <option value="">Select Team</option>
+              <option value="RED">TEAM RED</option>
+              <option value="BLUE">TEAM BLUE</option>
+              <option value="ORANGE">TEAM ORANGE</option>
+              <option value="GREEN">TEAM GREEN</option>
+              <option value="YELLOW">TEAM YELLOW</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block font-bold mb-2 text-sm">Due Date:</label>
+            <input 
+              type="date" 
+              className="w-full border border-gray-300 rounded p-3 text-sm"
+              value={action.dueDate || ''}
+              onChange={(e) => {
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  improvement: prev.improvement.map(item => 
+                    item.id === action.id ? {...item, dueDate: e.target.value} : item
+                  )
+                }));
+              }}
+            />
+          </div>
+          
+          <div>
+            <label className="block font-bold mb-2 text-sm">Priority:</label>
+            <select 
+              className="w-full border border-gray-300 rounded p-3 text-sm font-bold"
+              value={action.priority || 'MEDIUM'}
+              onChange={(e) => {
+                const priority = e.target.value;
+                const priorityColors = {
+                  'LOW': '#16a34a',
+                  'MEDIUM': '#d97706',
+                  'HIGH': '#dc2626'
+                };
+                
+                if (priorityColors[priority]) {
+                  e.target.style.color = priorityColors[priority];
+                  e.target.style.fontWeight = 'bold';
+                  e.target.style.backgroundColor = '';
+                } else {
+                  e.target.style.color = '';
+                  e.target.style.fontWeight = '';
+                  e.target.style.backgroundColor = '';
+                }
+                
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  improvement: prev.improvement.map(item => 
+                    item.id === action.id ? {...item, priority: priority} : item
+                  )
+                }));
+              }}
+              style={{
+                color: action.priority ? (() => {
+                  const priorityColors = {
+                    'LOW': '#16a34a',
+                    'MEDIUM': '#d97706',
+                    'HIGH': '#dc2626'
+                  };
+                  return priorityColors[action.priority] || '';
+                })() : '',
+                fontWeight: action.priority ? 'bold' : '',
+                backgroundColor: ''
+              }}
+            >
+              <option value="LOW">LOW</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="HIGH">HIGH</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block font-bold mb-2 text-sm">Status:</label>
+            <select 
+              className="w-full border border-gray-300 rounded p-3 text-sm font-bold"
+              value={action.status || 'OPEN'}
+              onChange={(e) => {
+                const status = e.target.value;
+                const statusColors = {
+                  'OPEN': '#d97706',
+                  'IN PROGRESS': '#16a34a',
+                  'ON HOLD': '#dc2626',
+                  'COMPLETED': '#059669'
+                };
+                
+                if (statusColors[status]) {
+                  e.target.style.color = statusColors[status];
+                  e.target.style.fontWeight = 'bold';
+                  e.target.style.backgroundColor = '';
+                } else {
+                  e.target.style.color = '';
+                  e.target.style.fontWeight = '';
+                  e.target.style.backgroundColor = '';
+                }
+                
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  improvement: prev.improvement.map(item => 
+                    item.id === action.id ? {...item, status: status} : item
+                  )
+                }));
+              }}
+              style={{
+                color: action.status ? (() => {
+                  const statusColors = {
+                    'OPEN': '#d97706',
+                    'IN PROGRESS': '#16a34a',
+                    'ON HOLD': '#dc2626',
+                    'COMPLETED': '#059669'
+                  };
+                  return statusColors[action.status] || '';
+                })() : '',
+                fontWeight: action.status ? 'bold' : '',
+                backgroundColor: ''
+              }}
+            >
+              <option value="OPEN">OPEN</option>
+              <option value="IN PROGRESS">IN PROGRESS</option>
+              <option value="ON HOLD">ON HOLD</option>
+              <option value="COMPLETED">COMPLETED</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block font-bold mb-2 text-sm">Feedback / Comments:</label>
+            <textarea 
+              style={{
+                fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+                fontWeight: '600',
+                color: '#1e3a8a'
+              }}
+              className="w-full h-20 text-sm border border-gray-300 rounded p-3"
+              placeholder="Additional notes..."
+              value={action.comments || ''}
+              onChange={(e) => {
+                setWeeklyActions(prev => ({
+                  ...prev,
+                  improvement: prev.improvement.map(item => 
+                    item.id === action.id ? {...item, comments: e.target.value} : item
+                  )
+                }));
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Multiple Images Upload Section */}
+        <div>
+          <label className="block font-bold mb-2 text-sm">Attach Images (Optional):</label>
+          <div className="relative">
+            <input 
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files);
+                if (files.length > 0) {
+                  files.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      setWeeklyActions(prev => ({
+                        ...prev,
+                        improvement: prev.improvement.map(item => 
+                          item.id === action.id ? {
+                            ...item, 
+                            images: [...(item.images || []), {
+                              id: Date.now() + Math.random(),
+                              data: event.target.result,
+                              name: file.name
+                            }]
+                          } : item
+                        )
+                      }));
+                    };
+                    reader.readAsDataURL(file);
+                  });
+                }
+                // Clear the input so the same file can be selected again
+                e.target.value = '';
+              }}
+              className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+            />
+          </div>
+          
+          {/* Display uploaded images */}
+          {action.images && action.images.length > 0 && (
+            <div className="mt-3 space-y-3">
+              {action.images.map((image) => (
+                <div key={image.id} className="p-3 border-2 border-blue-200 rounded-lg bg-white relative">
+                  <img 
+                    src={image.data} 
+                    alt="Uploaded attachment" 
+                    className="max-w-full max-h-48 border border-gray-300 rounded-lg shadow-sm"
+                  />
+                  <button
+                    onClick={() => {
+                      setWeeklyActions(prev => ({
+                        ...prev,
+                        improvement: prev.improvement.map(item => 
+                          item.id === action.id ? {
+                            ...item, 
+                            images: item.images.filter(img => img.id !== image.id)
+                          } : item
+                        )
+                      }));
+                    }}
+                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded font-medium transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4">
+          <button 
+            className="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-800"
+            onClick={() => {
+              setWeeklyActions(prev => ({
+                ...prev,
+                improvement: prev.improvement.filter(item => item.id !== action.id)
+              }));
+            }}
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+    ))}
+    <button 
+      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+      onClick={() => {
+        setWeeklyActions(prev => ({
+          ...prev,
+          improvement: [...prev.improvement, { id: Date.now() }]
+        }));
+      }}
+    >
+      Add Improvement Action
+    </button>
+  </div>
+</div>
+</div>
+      </div>
+    </div>
+  </div>
+            ) : (
+
+              <>
+                <ShiftSection 
+                  shift="earlyShift" 
+                  shiftName="Early Shift" 
+                  data={handoverData[days[currentDay] + 'Shift']?.earlyShift}
+                  day={days[currentDay] + 'Shift'}
+                />
+                <ShiftSection 
+                  shift="lateShift" 
+                  shiftName="Late Shift" 
+                  data={handoverData[days[currentDay] + 'Shift']?.lateShift}
+                  day={days[currentDay] + 'Shift'}
+                />
+                <ShiftSection 
+                  shift="nightShift" 
+                  shiftName="Night Shift" 
+                  data={handoverData[days[currentDay] + 'Shift']?.nightShift}
+                  day={days[currentDay] + 'Shift'}
+                />
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main App Component with Authentication
+const OnlineShiftHandoverSystem = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showUserManagement, setShowUserManagement] = useState(false);
+
+  useEffect(() => {
+    checkExistingSession();
+  }, []);
+
+  const checkExistingSession = async () => {
+    const sessionId = localStorage.getItem('sessionId');
+    if (sessionId) {
+      try {
+        const session = await AuthAPI.validateSession(sessionId);
+        if (session) {
+          setCurrentUser({
+            username: session.username,
+            role: session.role,
+            name: session.name
+          });
+          setIsAuthenticated(true);
+        } else {
+          localStorage.removeItem('sessionId');
+        }
+      } catch (error) {
+        console.error('Session validation failed:', error);
+        localStorage.removeItem('sessionId');
+      }
+    }
+    setLoading(false);
+  };
+
+  const handleLogin = (user) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = async () => {
+    const sessionId = localStorage.getItem('sessionId');
+    if (sessionId) {
+      await AuthAPI.logout(sessionId);
+      localStorage.removeItem('sessionId');
+    }
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+  };
+
+  const handleUserManagement = () => {
+    setShowUserManagement(true);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-green-900 flex items-center justify-center">
+        <div className="text-center">
+          <Clock className="w-12 h-12 animate-spin mx-auto mb-4 text-white" />
+          <p className="text-white text-lg">Loading System...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
+  return (
+    <>
+      <ShiftHandoverSystem 
+        user={currentUser} 
+        onLogout={handleLogout}
+        onUserManagement={handleUserManagement}
+      />
+      
+      {showUserManagement && currentUser.role === 'admin' && (
+        <UserManagement
+          currentUser={currentUser}
+          onClose={() => setShowUserManagement(false)}
+        />
+      )}
+    </>
+  );
+};
+
+window.AppRoot = OnlineShiftHandoverSystem;
+    // Boot
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    const App = window.AppRoot || OnlineShiftHandoverSystem || (()=>React.createElement('div', null, 'App not found'));
+    root.render(React.createElement(App));
+  </script>
+
+ <!-- Hide demo login details (cards + heading) -->
+  <script>
+  (function(){
+    function hideDemo(){
+      // hide the "Available Demo Accounts" heading
+      document.querySelectorAll('h3, h2').forEach(h => {
+        if (/Available Demo Accounts/i.test(h.textContent)) {
+          h.style.display = 'none';
+        }
+      });
+      // hide any card that contains "Username: admin" or "Username: maintenance"
+      const texts = [/Username:\s*admin/i, /Username:\s*maintenance/i];
+      document.querySelectorAll('div, p').forEach(el => {
+        const t = el.textContent || '';
+        if (texts.some(re => re.test(t))) {
+          let n = el;
+          for (let i=0;i<6 && n;i++){
+            if (n.classList && n.classList.contains('rounded')) { n.style.display = 'none'; break; }
+            n = n.parentElement;
+          }
+        }
+      });
+    }
+    const obs = new MutationObserver(() => requestAnimationFrame(hideDemo));
+    obs.observe(document.documentElement, {subtree:true, childList:true});
+    hideDemo();
+  })();
+  </script>
+
+
+  <!-- Hide "Show Demo Credentials" link -->
+  <script>
+  (function(){
+    function hideDemoLink(){
+      const match = /\bShow\s+Demo\s+Credentials\b/i;
+      document.querySelectorAll('a,button,div,span,p').forEach(el=>{
+        const t = (el.textContent || '').trim();
+        if (match.test(t)){
+          // Hide the element itself
+          el.style.display = 'none';
+          // Also hide any clickable parent wrapper
+          let n = el.parentElement;
+          for (let i=0; i<5 && n; i++){
+            if (n.tagName === 'A' || n.tagName === 'BUTTON') { n.style.display='none'; break; }
+            n = n.parentElement;
+          }
+        }
+      });
+    }
+    const obs = new MutationObserver(() => requestAnimationFrame(hideDemoLink));
+    obs.observe(document.documentElement, {subtree:true, childList:true});
+    hideDemoLink();
+  })();
+
+// Prevent night shift jumping - Simple solution
+let preventJump = false;
+
+document.addEventListener('input', function(e) {
+  if (preventJump) return;
+  
+  const currentScrollTop = window.pageYOffset;
+  
+  preventJump = true;
+  
+  setTimeout(() => {
+    window.scrollTo(0, currentScrollTop);
+    preventJump = false;
+  }, 0);
+});
+
+document.addEventListener('change', function(e) {
+  if (preventJump) return;
+  
+  const currentScrollTop = window.pageYOffset;
+  
+  preventJump = true;
+  
+  setTimeout(() => {
+    window.scrollTo(0, currentScrollTop);
+    preventJump = false;
+  }, 0);
+});
+  </script>
+
+</body>
+</html>
