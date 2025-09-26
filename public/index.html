@@ -1842,9 +1842,8 @@ const loadWeeklyActions = async () => {
   };
 
 const saveHandoverData = async (showAlert = true) => {
-  const currentScrollPosition = window.pageYOffset;
-  
-  setLoading(true);
+  // Don't capture/restore scroll - let it stay natural
+  // setLoading(true);  // Remove loading state changes
   setAutoSaveStatus('saving');
   
   try {
@@ -1875,12 +1874,9 @@ const saveHandoverData = async (showAlert = true) => {
     if (showAlert) {
       alert('Failed to save handover data. Please try again.');
     }
-  } finally {
-    setLoading(false);
-    window.scrollTo(0, currentScrollPosition);
   }
+  // Remove the finally block entirely
 };
-
 
  // useEffect(() => {
 //   const autoSaveTimer = setTimeout(() => {
