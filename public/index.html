@@ -1841,22 +1841,47 @@ const loadWeeklyActions = async () => {
     }
   };
 
- const saveHandoverData = async (showAlert = true) => {
+const saveHandoverData = async (showAlert = true) => {
   const currentScrollPosition = window.pageYOffset;
   
-  // setLoading(true);  // COMMENT OUT
+  setLoading(true);
+  setAutoSaveStatus('saving');
   
   try {
-    // ... save logic ...
+    const weekId = `${currentYear}-CW${currentWeek + 1}`;
+    
+    // Save main handover data
+    if (Object.keys(handoverData).length > 0) {
+      await ShiftHandoverAPI.saveHandover(weekId, handoverData);
+    }
+    
+    // Save process confirmation data
+    if (Object.keys(processConfirmation).length > 0) {
+      await ShiftHandoverAPI.saveHandover(`${weekId}-process`, processConfirmation);
+    }
+    
+    // Save weekly actions data
+    if (Object.keys(weeklyActions).length > 0) {
+      await ShiftHandoverAPI.saveHandover(`${weekId}-actions`, weeklyActions);
+    }
+    
+    setAutoSaveStatus('saved');
+    setLastSaved(new Date());
+    
+    if (showAlert) {
+      alert('Handover data saved successfully!');
+    }
+    
   } catch (error) {
     console.error('Failed to save handover data:', error);
+    setAutoSaveStatus('error');
+    
+    if (showAlert) {
+      alert('Failed to save handover data. Please try again.');
+    }
   } finally {
-    // setLoading(false);  // COMMENT OUT
+    setLoading(false);
     window.scrollTo(0, currentScrollPosition);
-
-if (showAlert) {
-  
-}
   }
 };
 
