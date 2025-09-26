@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
-const sqlite3 = require('sqlite3').verbose();
+const { Client } = require('pg');
 const path = require('path');
 
 const app = express();
@@ -10,114 +10,154 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// === Database setup ===
-const db = new sqlite3.Database('handover.db');
-
-db.serialize(() => {
-  db.run(`CREATE TABLE IF NOT EXISTS users (
-    username TEXT PRIMARY KEY,
-    password_hash TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'user',
-    name TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
-  
-  db.run(`CREATE TABLE IF NOT EXISTS sessions (
-    session_id TEXT PRIMARY KEY,
-    username TEXT NOT NULL,
-    role TEXT NOT NULL,
-    name TEXT NOT NULL,
-    login_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (username) REFERENCES users (username)
-  )`);
-  
-  db.run(`CREATE TABLE IF NOT EXISTS handovers (
-    id TEXT PRIMARY KEY,
-    data TEXT NOT NULL,
-    last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
-  
-  const adminHash = bcrypt.hashSync('admin123', 10);
-  const maintenanceHash = bcrypt.hashSync('shift2025', 10);
-  
-  db.run(`INSERT OR IGNORE INTO users (username, password_hash, role, name) 
-          VALUES (?, ?, 'admin', 'System Administrator')`, ['admin', adminHash]);
-  
-  db.run(`INSERT OR IGNORE INTO users (username, password_hash, role, name) 
-          VALUES (?, ?, 'user', 'Maintenance Team')`, ['maintenance', maintenanceHash]);
+// === Database setup for PostgreSQL ===
+const client = new Client({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
+
+// Connect to database
+async function initDatabase() {
+  try {
+    await client.connect();
+    console.log('Connected to PostgreSQL database');
+    
+    // Create tables
+    await client.query(`CREATE TABLE IF NOT EXISTS users (
+      username TEXT PRIMARY KEY,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'user',
+      name TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+    
+    await client.query(`CREATE TABLE IF NOT EXISTS sessions (
+      session_id TEXT PRIMARY KEY,
+      username TEXT NOT NULL,
+      role TEXT NOT NULL,
+      name TEXT NOT NULL,
+      login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (username) REFERENCES users (username)
+    )`);
+    
+    await client.query(`CREATE TABLE IF NOT EXISTS handovers (
+      id TEXT PRIMARY KEY,
+      data TEXT NOT NULL,
+      last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+    
+    // Create default users
+    const adminHash = bcrypt.hashSync('admin123', 10);
+    const maintenanceHash = bcrypt.hashSync('shift2025', 10);
+    
+    await client.query(`INSERT INTO users (username, password_hash, role, name) 
+            VALUES ($1, $2, 'admin', 'System Administrator')
+            ON CONFLICT (username) DO NOTHING`, ['admin', adminHash]);
+    
+    await client.query(`INSERT INTO users (username, password_hash, role, name) 
+            VALUES ($1, $2, 'user', 'Maintenance Team')
+            ON CONFLICT (username) DO NOTHING`, ['maintenance', maintenanceHash]);
+            
+    console.log('Database initialized successfully');
+  } catch (err) {
+    console.error('Database initialization error:', err);
+    process.exit(1);
+  }
+}
+
+// Initialize database on startup
+initDatabase();
 
 // === API routes ===
 
-app.post('/api/auth/login', (req, res) => {
-  const { username, password } = req.body;
-  db.get('SELECT * FROM users WHERE username = ?', [username], (err, user) => {
-    if (err || !user) {
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const result = await client.query('SELECT * FROM users WHERE username = $1', [username]);
+    
+    if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
+    
+    const user = result.rows[0];
     if (bcrypt.compareSync(password, user.password_hash)) {
       const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      db.run('INSERT INTO sessions (session_id, username, role, name) VALUES (?, ?, ?, ?)',
-        [sessionId, user.username, user.role, user.name], (err) => {
-          if (err) {
-            return res.status(500).json({ error: 'Session creation failed' });
-          }
-          res.json({
-            sessionId,
-            user: {
-              username: user.username,
-              role: user.role,
-              name: user.name
-            }
-          });
-        });
+      await client.query('INSERT INTO sessions (session_id, username, role, name) VALUES ($1, $2, $3, $4)',
+        [sessionId, user.username, user.role, user.name]);
+        
+      res.json({
+        sessionId,
+        user: {
+          username: user.username,
+          role: user.role,
+          name: user.name
+        }
+      });
     } else {
       res.status(401).json({ error: 'Invalid username or password' });
     }
-  });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Login failed' });
+  }
 });
 
-app.post('/api/auth/logout', (req, res) => {
-  const { sessionId } = req.body;
-  db.run('DELETE FROM sessions WHERE session_id = ?', [sessionId], (err) => {
-    if (err) {
-      return res.status(500).json({ error: 'Logout failed' });
-    }
+app.post('/api/auth/logout', async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    await client.query('DELETE FROM sessions WHERE session_id = $1', [sessionId]);
     res.json({ success: true });
-  });
+  } catch (err) {
+    console.error('Logout error:', err);
+    res.status(500).json({ error: 'Logout failed' });
+  }
 });
 
-app.post('/api/auth/validate', (req, res) => {
-  const { sessionId } = req.body;
-  db.get('SELECT * FROM sessions WHERE session_id = ?', [sessionId], (err, session) => {
-    if (err || !session) {
+app.post('/api/auth/validate', async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    const result = await client.query('SELECT * FROM sessions WHERE session_id = $1', [sessionId]);
+    
+    if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid session' });
     }
+    
+    const session = result.rows[0];
     res.json({
       username: session.username,
       role: session.role,
       name: session.name,
       loginTime: session.login_time
     });
-  });
+  } catch (err) {
+    console.error('Validation error:', err);
+    res.status(401).json({ error: 'Invalid session' });
+  }
 });
 
-function authenticate(req, res, next) {
-  const sessionId = req.headers['x-session-id'] || req.body.sessionId;
-  if (!sessionId) {
-    return res.status(401).json({ error: 'No session provided' });
-  }
-  db.get('SELECT * FROM sessions WHERE session_id = ?', [sessionId], (err, session) => {
-    if (err || !session) {
+async function authenticate(req, res, next) {
+  try {
+    const sessionId = req.headers['x-session-id'] || req.body.sessionId;
+    if (!sessionId) {
+      return res.status(401).json({ error: 'No session provided' });
+    }
+    
+    const result = await client.query('SELECT * FROM sessions WHERE session_id = $1', [sessionId]);
+    if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid session' });
     }
+    
+    const session = result.rows[0];
     req.user = {
       username: session.username,
       role: session.role,
       name: session.name
     };
     next();
-  });
+  } catch (err) {
+    console.error('Authentication error:', err);
+    res.status(401).json({ error: 'Authentication failed' });
+  }
 }
 
 function authenticateAdmin(req, res, next) {
@@ -129,105 +169,118 @@ function authenticateAdmin(req, res, next) {
   });
 }
 
-app.get('/api/users', authenticateAdmin, (req, res) => {
-  db.all('SELECT username, role, name, created_at FROM users', (err, users) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch users' });
-    }
-    res.json(users);
-  });
+app.get('/api/users', authenticateAdmin, async (req, res) => {
+  try {
+    const result = await client.query('SELECT username, role, name, created_at FROM users');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Fetch users error:', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
 });
 
-app.post('/api/users', authenticateAdmin, (req, res) => {
-  const { username, password, name, role } = req.body;
-  if (!username || !password || !name) {
-    return res.status(400).json({ error: 'Missing required fields' });
+app.post('/api/users', authenticateAdmin, async (req, res) => {
+  try {
+    const { username, password, name, role } = req.body;
+    if (!username || !password || !name) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    const passwordHash = bcrypt.hashSync(password, 10);
+    await client.query('INSERT INTO users (username, password_hash, role, name) VALUES ($1, $2, $3, $4)',
+      [username, passwordHash, role || 'user', name]);
+      
+    res.json({ success: true });
+  } catch (err) {
+    if (err.code === '23505') { // Unique constraint violation
+      return res.status(409).json({ error: 'Username already exists' });
+    }
+    console.error('Create user error:', err);
+    res.status(500).json({ error: 'User creation failed' });
   }
-  const passwordHash = bcrypt.hashSync(password, 10);
-  db.run('INSERT INTO users (username, password_hash, role, name) VALUES (?, ?, ?, ?)',
-    [username, passwordHash, role || 'user', name], function(err) {
-      if (err) {
-        if (err.code === 'SQLITE_CONSTRAINT') {
-          return res.status(409).json({ error: 'Username already exists' });
-        }
-        return res.status(500).json({ error: 'User creation failed' });
-      }
-      res.json({ success: true });
-    });
 });
 
-app.delete('/api/users/:username', authenticateAdmin, (req, res) => {
-  const { username } = req.params;
-  if (username === 'admin') {
-    return res.status(403).json({ error: 'Cannot delete admin user' });
-  }
-  db.run('DELETE FROM users WHERE username = ?', [username], function(err) {
-    if (err) {
-      return res.status(500).json({ error: 'User deletion failed' });
+app.delete('/api/users/:username', authenticateAdmin, async (req, res) => {
+  try {
+    const { username } = req.params;
+    if (username === 'admin') {
+      return res.status(403).json({ error: 'Cannot delete admin user' });
     }
-    if (this.changes === 0) {
+    
+    const result = await client.query('DELETE FROM users WHERE username = $1', [username]);
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
-    db.run('DELETE FROM sessions WHERE username = ?', [username]);
+    
+    await client.query('DELETE FROM sessions WHERE username = $1', [username]);
     res.json({ success: true });
-  });
+  } catch (err) {
+    console.error('Delete user error:', err);
+    res.status(500).json({ error: 'User deletion failed' });
+  }
 });
 
-app.get('/api/handover/:id', authenticate, (req, res) => {
-  const { id } = req.params;
-  db.get('SELECT * FROM handovers WHERE id = ?', [id], (err, row) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch handover' });
-    }
-    if (!row) {
+app.get('/api/handover/:id', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await client.query('SELECT * FROM handovers WHERE id = $1', [id]);
+    
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Handover not found' });
     }
-    res.json(JSON.parse(row.data));
-  });
+    
+    res.json(JSON.parse(result.rows[0].data));
+  } catch (err) {
+    console.error('Fetch handover error:', err);
+    res.status(500).json({ error: 'Failed to fetch handover' });
+  }
 });
 
-app.post('/api/handover/:id', authenticate, (req, res) => {
-  const { id } = req.params;
-  const data = req.body;
-  const dataString = JSON.stringify(data);
-  db.run('INSERT OR REPLACE INTO handovers (id, data, last_updated) VALUES (?, ?, CURRENT_TIMESTAMP)',
-    [id, dataString], (err) => {
-      if (err) {
-        return res.status(500).json({ error: 'Failed to save handover' });
-      }
-      res.json({ success: true });
-    });
+app.post('/api/handover/:id', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+    const dataString = JSON.stringify(data);
+    
+    await client.query(`INSERT INTO handovers (id, data, last_updated) 
+                       VALUES ($1, $2, CURRENT_TIMESTAMP)
+                       ON CONFLICT (id) 
+                       DO UPDATE SET data = $2, last_updated = CURRENT_TIMESTAMP`,
+      [id, dataString]);
+      
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Save handover error:', err);
+    res.status(500).json({ error: 'Failed to save handover' });
+  }
 });
 
-app.get('/api/handovers', authenticate, (req, res) => {
-  db.all('SELECT id, last_updated FROM handovers ORDER BY last_updated DESC', (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch handovers' });
-    }
-    res.json(rows);
-  });
+app.get('/api/handovers', authenticate, async (req, res) => {
+  try {
+    const result = await client.query('SELECT id, last_updated FROM handovers ORDER BY last_updated DESC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Fetch handovers error:', err);
+    res.status(500).json({ error: 'Failed to fetch handovers' });
+  }
 });
 
 // === Serve static files AFTER API routes ===
 app.use(express.static('public'));
 
-// Fallback: serve index.html for frontend routes (optional)
-app.get('/', (req, res) => {
+// Fallback: serve index.html for frontend routes
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Optional: Handle SIGINT gracefully
-process.on('SIGINT', () => {
+// Graceful shutdown
+process.on('SIGINT', async () => {
   console.log('\nShutting down server...');
-  db.close((err) => {
-    if (err) {
-      console.error(err.message);
-    }
-    console.log('Database connection closed.');
-    process.exit(0);
-  });
+  await client.end();
+  console.log('Database connection closed.');
+  process.exit(0);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
 });
