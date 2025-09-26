@@ -9,8 +9,8 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
-app.use(express.static('public'));
 
+// === Database setup ===
 const db = new sqlite3.Database('handover.db');
 
 db.serialize(() => {
@@ -46,6 +46,8 @@ db.serialize(() => {
   db.run(`INSERT OR IGNORE INTO users (username, password_hash, role, name) 
           VALUES (?, ?, 'user', 'Maintenance Team')`, ['maintenance', maintenanceHash]);
 });
+
+// === API routes ===
 
 app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body;
@@ -229,14 +231,15 @@ app.get('/api/handovers', authenticate, (req, res) => {
   });
 });
 
+// === Serve static files AFTER API routes ===
+app.use(express.static('public'));
+
+// Fallback: serve index.html for frontend routes (optional)
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
-
+// Optional: Handle SIGINT gracefully
 process.on('SIGINT', () => {
   console.log('\nShutting down server...');
   db.close((err) => {
@@ -246,4 +249,8 @@ process.on('SIGINT', () => {
     console.log('Database connection closed.');
     process.exit(0);
   });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
