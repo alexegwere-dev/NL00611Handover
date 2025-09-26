@@ -51,21 +51,17 @@ db.serialize(() => {
 
 app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body;
-  
   db.get('SELECT * FROM users WHERE username = ?', [username], (err, user) => {
     if (err || !user) {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
-    
     if (bcrypt.compareSync(password, user.password_hash)) {
       const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      
       db.run('INSERT INTO sessions (session_id, username, role, name) VALUES (?, ?, ?, ?)',
         [sessionId, user.username, user.role, user.name], (err) => {
           if (err) {
             return res.status(500).json({ error: 'Session creation failed' });
           }
-          
           res.json({
             sessionId,
             user: {
@@ -83,7 +79,6 @@ app.post('/api/auth/login', (req, res) => {
 
 app.post('/api/auth/logout', (req, res) => {
   const { sessionId } = req.body;
-  
   db.run('DELETE FROM sessions WHERE session_id = ?', [sessionId], (err) => {
     if (err) {
       return res.status(500).json({ error: 'Logout failed' });
@@ -94,12 +89,10 @@ app.post('/api/auth/logout', (req, res) => {
 
 app.post('/api/auth/validate', (req, res) => {
   const { sessionId } = req.body;
-  
   db.get('SELECT * FROM sessions WHERE session_id = ?', [sessionId], (err, session) => {
     if (err || !session) {
       return res.status(401).json({ error: 'Invalid session' });
     }
-    
     res.json({
       username: session.username,
       role: session.role,
@@ -111,16 +104,13 @@ app.post('/api/auth/validate', (req, res) => {
 
 function authenticate(req, res, next) {
   const sessionId = req.headers['x-session-id'] || req.body.sessionId;
-  
   if (!sessionId) {
     return res.status(401).json({ error: 'No session provided' });
   }
-  
   db.get('SELECT * FROM sessions WHERE session_id = ?', [sessionId], (err, session) => {
     if (err || !session) {
       return res.status(401).json({ error: 'Invalid session' });
     }
-    
     req.user = {
       username: session.username,
       role: session.role,
@@ -150,13 +140,10 @@ app.get('/api/users', authenticateAdmin, (req, res) => {
 
 app.post('/api/users', authenticateAdmin, (req, res) => {
   const { username, password, name, role } = req.body;
-  
   if (!username || !password || !name) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
-  
   const passwordHash = bcrypt.hashSync(password, 10);
-  
   db.run('INSERT INTO users (username, password_hash, role, name) VALUES (?, ?, ?, ?)',
     [username, passwordHash, role || 'user', name], function(err) {
       if (err) {
@@ -171,20 +158,16 @@ app.post('/api/users', authenticateAdmin, (req, res) => {
 
 app.delete('/api/users/:username', authenticateAdmin, (req, res) => {
   const { username } = req.params;
-  
   if (username === 'admin') {
     return res.status(403).json({ error: 'Cannot delete admin user' });
   }
-  
   db.run('DELETE FROM users WHERE username = ?', [username], function(err) {
     if (err) {
       return res.status(500).json({ error: 'User deletion failed' });
     }
-    
     if (this.changes === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
     db.run('DELETE FROM sessions WHERE username = ?', [username]);
     res.json({ success: true });
   });
@@ -192,16 +175,13 @@ app.delete('/api/users/:username', authenticateAdmin, (req, res) => {
 
 app.get('/api/handover/:id', authenticate, (req, res) => {
   const { id } = req.params;
-  
   db.get('SELECT * FROM handovers WHERE id = ?', [id], (err, row) => {
     if (err) {
       return res.status(500).json({ error: 'Failed to fetch handover' });
     }
-    
     if (!row) {
       return res.status(404).json({ error: 'Handover not found' });
     }
-    
     res.json(JSON.parse(row.data));
   });
 });
@@ -209,9 +189,7 @@ app.get('/api/handover/:id', authenticate, (req, res) => {
 app.post('/api/handover/:id', authenticate, (req, res) => {
   const { id } = req.params;
   const data = req.body;
-  
   const dataString = JSON.stringify(data);
-  
   db.run('INSERT OR REPLACE INTO handovers (id, data, last_updated) VALUES (?, ?, CURRENT_TIMESTAMP)',
     [id, dataString], (err) => {
       if (err) {
@@ -226,7 +204,6 @@ app.get('/api/handovers', authenticate, (req, res) => {
     if (err) {
       return res.status(500).json({ error: 'Failed to fetch handovers' });
     }
-    
     res.json(rows);
   });
 });
