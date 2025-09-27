@@ -48,16 +48,11 @@ async function initDatabase() {
     
     // Create default users
     const adminHash = bcrypt.hashSync('admin123', 10);
-    const maintenanceHash = bcrypt.hashSync('shift2025', 10);
-    
+     
     await client.query(`INSERT INTO users (username, password_hash, role, name) 
             VALUES ($1, $2, 'admin', 'System Administrator')
             ON CONFLICT (username) DO NOTHING`, ['admin', adminHash]);
-    
-    await client.query(`INSERT INTO users (username, password_hash, role, name) 
-            VALUES ($1, $2, 'user', 'Maintenance Team')
-            ON CONFLICT (username) DO NOTHING`, ['maintenance', maintenanceHash]);
-            
+                  
     console.log('Database initialized successfully');
   } catch (err) {
     console.error('Database initialization error:', err);
@@ -284,3 +279,4 @@ process.on('SIGINT', async () => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
+
