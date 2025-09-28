@@ -1248,19 +1248,19 @@ style={{border: '2px solid #008080'}}
               <table className="w-full border-2 bg-white" style={{borderColor: '#008080'}}>
                 <thead style={{backgroundColor: '#d1eee9'}}>
                   <tr>
-                    <th className="border border-gray-300 px-3 py-2 text-left">Engineer</th>
-                    <th className="border border-gray-300 px-3 py-2 text-center">PPM Completed</th>
-                    <th className="border border-gray-300 px-3 py-2 text-center">Breakdowns</th>
-                    <th className="border border-gray-300 px-3 py-2 text-center">Time Booked</th>
+                  <th className="border-2 px-3 py-2 text-left" style={{borderColor: '#008080'}}>Engineer</th>
+<th className="border-2 px-3 py-2 text-center" style={{borderColor: '#008080'}}>PPM Completed</th>
+<th className="border-2 px-3 py-2 text-center" style={{borderColor: '#008080'}}>Breakdowns</th>
+<th className="border-2 px-3 py-2 text-center" style={{borderColor: '#008080'}}>Time Booked</th>>
                   </tr>
                 </thead>
                 <tbody>
                   {Object.entries(parsedData.engineerStats).map(([engineer, stats]) => (
                     <tr key={engineer}>
-                      <td className="border border-gray-300 px-3 py-2 font-medium">{engineer}</td>
-                      <td className="border border-gray-300 px-3 py-2 text-center">{stats.completedPPM}</td>
-                      <td className="border border-gray-300 px-3 py-2 text-center">{stats.breakdowns}</td>
-                      <td className={`border border-gray-300 px-3 py-2 text-center font-semibold ${
+                     <td className="border-2 px-3 py-2 font-medium" style={{borderColor: '#008080'}}>{engineer}</td>
+<td className="border-2 px-3 py-2 text-center" style={{borderColor: '#008080'}}>{stats.completedPPM}</td>
+<td className="border-2 px-3 py-2 text-center" style={{borderColor: '#008080'}}>{stats.breakdowns}</td>
+<td className={`border-2 px-3 py-2 text-center font-semibold ${
                         stats.timeBookedPercentage === 100 ? 'bg-green-100 text-green-800' :
                         stats.timeBookedPercentage >= 80 ? 'bg-yellow-100 text-yellow-800' :
                         stats.timeBookedPercentage > 0 ? 'bg-red-100 text-red-800' :
