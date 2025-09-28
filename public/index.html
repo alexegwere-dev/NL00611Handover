@@ -307,7 +307,22 @@ const LoginPage = ({ onLogin }) => {
                     </div>
                   </div>
                   
+                  <div className="bg-white bg-opacity-10 rounded p-3">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-white font-medium">Maintenance Team</p>
+                        <p className="text-blue-200 text-sm">Username: maintenance | Password: shift2025</p>
+                      </div>
+                      <button
+                        onClick={() => demoLogin({ username: 'maintenance', password: 'shift2025' })}
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                        disabled={loading}
+                      >
+                        Login
+                      </button>
+                    </div>
                   </div>
+                </div>
               </div>
             </div>
           )}
@@ -1054,12 +1069,10 @@ const DataImportSection = ({ handoverData, setHandoverData, currentWeek, current
         <div className="rounded-lg p-4" style={{backgroundColor: '#e5f2f2', border: '1px solid #008080'}}>
           <h3 className="font-semibold mb-2" style={{color: '#021744'}}>Instructions:</h3>
           <ul className="text-sm space-y-1" style={{color: '#021744'}}>
-            <li>• Paste CMMS maintenance CSV data in the text area below</li>
+            <li>• Paste your maintenance CSV data in the text area below</li>
             <li>• Select the date from the current week (CW{currentWeek + 1})</li>
             <li>• Select the shift type and team</li>
-            <li>• Click "PROCESS CMMS DATA"</li>
-             <li>• Enter Additional Handover Information</li>
-             <li>• Enter random stock check</li>
+            <li>• Click "PROCESS DATA"</li>
             <li>• Click "Update Handover" to apply</li>
           </ul>
         </div>
@@ -1828,42 +1841,25 @@ const loadWeeklyActions = async () => {
     }
   };
 
-const saveHandoverData = async (showAlert = true) => {
-  // Don't capture/restore scroll - let it stay natural
-  // setLoading(true);  // Remove loading state changes
-  setAutoSaveStatus('saving');
+ const saveHandoverData = async (showAlert = true) => {
+  const currentScrollPosition = window.pageYOffset;
+  
+  // setLoading(true);  // COMMENT OUT
   
   try {
-    const weekId = `${currentYear}-CW${currentWeek + 1}`;
-    
-    // Save main handover data
-    if (Object.keys(handoverData).length > 0) {
-      await ShiftHandoverAPI.saveHandover(weekId, handoverData);
-    }
-    
-    // Save process confirmation data
-    if (Object.keys(processConfirmation).length > 0) {
-      await ShiftHandoverAPI.saveHandover(`${weekId}-process`, processConfirmation);
-    }
-    
-    // Save weekly actions data
-    if (Object.keys(weeklyActions).length > 0) {
-      await ShiftHandoverAPI.saveHandover(`${weekId}-actions`, weeklyActions);
-    }
-    
-    setAutoSaveStatus('saved');
-    setLastSaved(new Date());
-    
+    // ... save logic ...
   } catch (error) {
     console.error('Failed to save handover data:', error);
-    setAutoSaveStatus('error');
-    
-    if (showAlert) {
-      alert('Failed to save handover data. Please try again.');
-    }
+  } finally {
+    // setLoading(false);  // COMMENT OUT
+    window.scrollTo(0, currentScrollPosition);
+
+if (showAlert) {
+  
+}
   }
-  // Remove the finally block entirely
 };
+
 
  // useEffect(() => {
 //   const autoSaveTimer = setTimeout(() => {
@@ -1885,7 +1881,7 @@ const saveHandoverData = async (showAlert = true) => {
     if (!data) return null;
 
     return (
-               <div className="border border-gray-400 bg-white">
+              <div className="border-2 border-gray-600 mb-6" style={{backgroundColor: '#008080'}}>
         <div className="text-white text-center py-2 px-4 font-extrabold text-xl tracking-wide" style={{backgroundColor: '#008080'}}>
           {shiftName.toUpperCase()} HANDOVER
         </div>
@@ -2255,8 +2251,7 @@ const saveHandoverData = async (showAlert = true) => {
               <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>
                 Additional Handover Information
               </div>
-             <div className="border border-gray-400 bg-white" style={{height: 'calc(100% - 56px)'}}
-       
+              <div className="border border-gray-400 bg-white" style={{height: 'calc(100% - 56px)'}}>
                 <textarea
                   value={data.additionalInfo || ''}
                   onChange={(e) => {
@@ -2419,13 +2414,13 @@ const saveHandoverData = async (showAlert = true) => {
 <div className="mb-4">
   <div
     className="text-center py-1 px-2 font-bold text-sm text-white"
-    style={{ backgroundColor: '#ffffff?' }}
+    style={{ backgroundColor: '#008080' }}
   >
     END OF SHIFT CHECKLIST
   </div>
 
   {/* Removed the scroll styles here */}
- <div className="border-2 mb-6 rounded-lg" style={{backgroundColor: '#008080', borderColor: '#008080'}}>
+  <div className="border border-gray-400 bg-white">
     {[
       'Are all personal belongings cleared?',
       'Is the workshop clean, tidy, and all tools stored?',
@@ -2643,14 +2638,15 @@ const saveHandoverData = async (showAlert = true) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <button
-  onClick={() => saveHandoverData(true)}
-  disabled={loading}
-  className={`flex items-center px-8 py-3 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 disabled:opacity-50 transition-all font-semibold backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-105 ${
-    loading ? 'animate-pulse scale-95' : 'active:scale-95 active:translate-y-1'
-  }`}
->
-  {loading ? 'Auto-Saving...' : 'Save Handover'}
-</button>
+                   onClick={() => saveHandoverData(true)}
+                    disabled={loading}
+                    className={`flex items-center px-8 py-3 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 disabled:opacity-50 transition-all font-semibold backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                      loading ? 'animate-pulse scale-95' : 'active:scale-95 active:translate-y-1'
+                    }`}
+                  >
+                    <Save className="w-5 h-5 mr-3" />
+                    {loading ? 'Auto-Saving...' : 'Save Changes'}
+                  </button>
 
                   <div className="flex items-center gap-2 bg-white bg-opacity-20 rounded-lg px-3 py-2 backdrop-blur-sm">
                     <div className={`w-2 h-2 rounded-full ${
@@ -2674,11 +2670,12 @@ const saveHandoverData = async (showAlert = true) => {
                   </div>
 
                   <button
-  onClick={() => setShowPPMSplit(!showPPMSplit)}
-  className="flex items-center px-6 py-3 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 transition-all font-semibold backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-105"
->
-  Weekly PPM Split
-</button>
+                    onClick={() => setShowPPMSplit(!showPPMSplit)}
+                    className="flex items-center px-6 py-3 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 transition-all font-semibold backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    <Calendar className="w-5 h-5 mr-2" />
+                    Weekly PPM Split
+                  </button>
                 </div>
 
                 {showPPMSplit && (
