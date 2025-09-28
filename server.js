@@ -53,10 +53,11 @@ async function initDatabase() {
     const adminRole = process.env.ADMIN_ROLE || 'admin';
 
     if (adminUsername && adminPassword) {
-      const adminHash = bcrypt.hashSync('Agbakara@0211', 10);
+      const adminHash = bcrypt.hashSync('admin123', 10);
+
 await client.query(`INSERT INTO users (username, password_hash, role, name) 
-        VALUES ($1, $2, 'admin', 'Alex Egwere')
-        ON CONFLICT (username) DO NOTHING`, ['alex', adminHash]);
+        VALUES ($1, $2, 'admin', 'System Administrator')
+        ON CONFLICT (username) DO NOTHING`, ['admin', adminHash]);
             
     console.log('Database initialized successfully');
   } catch (err) {
@@ -289,5 +290,6 @@ process.on('SIGINT', async () => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
 
