@@ -1896,9 +1896,8 @@ if (showAlert) {
                 </div>
                 <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
                   <div className="grid grid-cols-2 text-xs">
-                    <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9'}}>Planned PPM</div>
+                    <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9 '}}>Planned PPM</div>
                     <div className="p-1 bg-white">
-
                       <input
                         type="text"
                         value={data.plannedPPM || ''}
@@ -1915,80 +1914,62 @@ if (showAlert) {
                             }
                           }));
                         }}
-
-  className="w-full text-xs focus:outline-none p-0"
-  style={{
-    border: 'none', 
-    background: 'transparent',
-    fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
-    fontWeight: '600',
-    color: '#1f4e3d'
-  }}
-/>
+                        className="w-full text-xs focus:outline-none p-0"
+                        style={{border: 'none', background: 'transparent'}}
+                      />
                     </div>
                   </div>
-                  div className="grid grid-cols-2 text-xs border-t border-gray-400">
-                  <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9'}}>Completed PPM</div>
+                  <div className="grid grid-cols-2 text-xs border-t border-gray-400">
+                  <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9 '}}>Completed PPM</div>
                    <div className="p-1 bg-white">
-
                       <input
-  type="text"
-  value={data.completedPPM || ''}
-  onChange={(e) => {
-    const newValue = e.target.value;
-    setHandoverData(prev => ({
-      ...prev,
-      [day]: {
-        ...prev[day],
-        [shift]: {
-          ...prev[day]?.[shift],
-          completedPPM: newValue
-        }
-      }
-    }));
-  }}
-  className={`w-full text-xs focus:outline-none p-0 ${
-    data.plannedPPM && data.completedPPM
-      ? parseFloat(data.completedPPM) < parseFloat(data.plannedPPM)
-        ? 'bg-red-300'
-        : 'bg-green-300'
-      : ''
-  }`}
-  style={{
-    border: 'none',
-    fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
-    fontWeight: '600',
-    color: '#1f4e3d'
-  }}
-/>
+                        type="text"
+                        value={data.completedPPM || ''}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          setHandoverData(prev => ({
+                            ...prev,
+                            [day]: {
+                              ...prev[day],
+                              [shift]: {
+                                ...prev[day]?.[shift],
+                                completedPPM: newValue
+                              }
+                            }
+                          }));
+                        }}
+                        className={`w-full text-xs focus:outline-none p-0 ${
+                          data.plannedPPM && data.completedPPM
+                            ? parseFloat(data.completedPPM) < parseFloat(data.plannedPPM)
+                              ? 'bg-red-300'
+                              : 'bg-green-300'
+                            : ''
+                        }`}
+                        style={{border: 'none'}}
+                      />
                     </div>
                   </div>
-                   <div className="grid grid-cols-2 text-xs border-t border-gray-400">
-  <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9'}}>Total breakdowns</div>
-  <div className="p-1 bg-white">>
-                     <input
-  type="text"
-  value={data.totalBreakdowns || ''}
-  onChange={(e) => {
-    const newValue = e.target.value;
-    setHandoverData(prev => ({
-      ...prev,
-      [day]: {
-        ...prev[day],
-        [shift]: {
-          ...prev[day]?.[shift],
-          totalBreakdowns: newValue
-        }
-      }
-    }));
-  }}
-  className="w-full text-xs border-0 focus:outline-none p-0"
-  style={{
-    fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
-    fontWeight: '600',
-    color: '#1f4e3d'
-  }}
-/>
+                  <div className="grid grid-cols-2 text-xs border-t border-gray-400">
+  <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9 '}}>Total breakdowns</div>
+  <div className="p-1 bg-white">
+                      <input
+                        type="text"
+                        value={data.totalBreakdowns || ''}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          setHandoverData(prev => ({
+                            ...prev,
+                            [day]: {
+                              ...prev[day],
+                              [shift]: {
+                                ...prev[day]?.[shift],
+                                totalBreakdowns: newValue
+                              }
+                            }
+                          }));
+                        }}
+                        className="w-full text-xs border-0 focus:outline-none p-0"
+                      />
                     </div>
                   </div>
                 </div>
@@ -2019,17 +2000,12 @@ if (showAlert) {
                             }
                           }));
                         }}
-                       className="w-full text-xs border-0 focus:outline-none p-0"
-  style={{
-    fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
-    fontWeight: '600',
-    color: '#1f4e3d'
-  }}
-/>
+                        className="w-full text-xs border-0 focus:outline-none p-0"
+                      />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 text-xs border-t border-gray-400">
-                   <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9 '}}>Near Misses</div>
+                 <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9 '}}>Near Misses</div>
                     <div className="p-1 bg-white">
                       <input
                         type="text"
@@ -2048,12 +2024,7 @@ if (showAlert) {
                           }));
                         }}
                         className="w-full text-xs border-0 focus:outline-none p-0"
-  style={{
-    fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
-    fontWeight: '600',
-    color: '#1f4e3d'
-  }}
-/>
+                      />
                     </div>
                   </div>
                 </div>
@@ -2066,7 +2037,8 @@ if (showAlert) {
                 </div>
                 <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
                   <div className="grid grid-cols-2 text-xs">
-                   <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9 '}}>TEAM</div>
+                   <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9'}}>TEAM</div>
+
                     <div className="p-1 font-bold text-center">
                       <select
                         value={data.teamColor || 'YELLOW'}
