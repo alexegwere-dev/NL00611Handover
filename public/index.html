@@ -1885,7 +1885,7 @@ const saveHandoverData = async (showAlert = true) => {
     if (!data) return null;
 
     return (
-              <div className="border-2 mb-6 rounded-lg" style={{backgroundColor: '#008080', borderColor: '#008080'}}>
+               <div className="border border-gray-400 bg-white">
         <div className="text-white text-center py-2 px-4 font-extrabold text-xl tracking-wide" style={{backgroundColor: '#008080'}}>
           {shiftName.toUpperCase()} HANDOVER
         </div>
@@ -2255,7 +2255,8 @@ const saveHandoverData = async (showAlert = true) => {
               <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>
                 Additional Handover Information
               </div>
-              <div className="border border-gray-400 bg-white" style={{height: 'calc(100% - 56px)'}}>
+              <div className="border-2 mb-6 rounded-lg" style={{backgroundColor: '#008080', borderColor: '#008080'}}>
+       
                 <textarea
                   value={data.additionalInfo || ''}
                   onChange={(e) => {
@@ -2424,7 +2425,7 @@ const saveHandoverData = async (showAlert = true) => {
   </div>
 
   {/* Removed the scroll styles here */}
-  <div className="border-2 mb-6 rounded-lg" style={{backgroundColor: '#008080', borderColor: '#008080'}}>
+ <div className="border border-gray-400 bg-white">
     {[
       'Are all personal belongings cleared?',
       'Is the workshop clean, tidy, and all tools stored?',
