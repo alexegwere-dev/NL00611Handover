@@ -46,13 +46,23 @@ async function initDatabase() {
       last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
     
-    // Create default users
-    const adminHash = bcrypt.hashSync('admin123', 10);
-     
-    await client.query(`INSERT INTO users (username, password_hash, role, name) 
-            VALUES ($1, $2, 'admin', 'System Administrator')
-            ON CONFLICT (username) DO NOTHING`, ['admin', adminHash]);
-                  
+    // Create secure admin from environment variables
+    const adminUsername = process.env.ADMIN_USERNAME;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    const adminName = process.env.ADMIN_NAME || 'System Administrator';
+    const adminRole = process.env.ADMIN_ROLE || 'admin';
+
+    if (adminUsername && adminPassword) {
+      const adminHash = bcrypt.hashSync(adminPassword, 10);
+      await client.query(`INSERT INTO users (username, password_hash, role, name) 
+              VALUES ($1, $2, $3, $4)
+              ON CONFLICT (username) DO NOTHING`, 
+              [adminUsername, adminHash, adminRole, adminName]);
+      console.log(`Secure admin account created: ${adminName} (${adminRole})`);
+    } else {
+      console.log('No admin credentials provided in environment variables');
+    }
+            
     console.log('Database initialized successfully');
   } catch (err) {
     console.error('Database initialization error:', err);
@@ -198,16 +208,21 @@ app.post('/api/users', authenticateAdmin, async (req, res) => {
 app.delete('/api/users/:username', authenticateAdmin, async (req, res) => {
   try {
     const { username } = req.params;
-    if (username === 'admin') {
+    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+    
+    if (username === adminUsername) {
       return res.status(403).json({ error: 'Cannot delete admin user' });
     }
     
+    // Delete sessions first (to avoid foreign key constraint)
+    await client.query('DELETE FROM sessions WHERE username = $1', [username]);
+    
+    // Then delete the user
     const result = await client.query('DELETE FROM users WHERE username = $1', [username]);
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    await client.query('DELETE FROM sessions WHERE username = $1', [username]);
     res.json({ success: true });
   } catch (err) {
     console.error('Delete user error:', err);
@@ -279,4 +294,3 @@ process.on('SIGINT', async () => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
-
