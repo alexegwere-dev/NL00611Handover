@@ -53,15 +53,10 @@ async function initDatabase() {
     const adminRole = process.env.ADMIN_ROLE || 'admin';
 
     if (adminUsername && adminPassword) {
-      const adminHash = bcrypt.hashSync(adminPassword, 10);
-      await client.query(`INSERT INTO users (username, password_hash, role, name) 
-              VALUES ($1, $2, $3, $4)
-              ON CONFLICT (username) DO NOTHING`, 
-              [adminUsername, adminHash, adminRole, adminName]);
-      console.log(`Secure admin account created: ${adminName} (${adminRole})`);
-    } else {
-      console.log('No admin credentials provided in environment variables');
-    }
+      const adminHash = bcrypt.hashSync('your_actual_password', 10);
+await client.query(`INSERT INTO users (username, password_hash, role, name) 
+        VALUES ($1, $2, 'admin', 'Alex Egwere')
+        ON CONFLICT (username) DO NOTHING`, ['alex', adminHash]);
             
     console.log('Database initialized successfully');
   } catch (err) {
@@ -294,3 +289,4 @@ process.on('SIGINT', async () => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
+
