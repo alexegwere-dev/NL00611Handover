@@ -11,6 +11,15 @@
   </script>
   <style>
 
+/* Prevent flash of content during authentication check */
+body.checking-auth {
+  visibility: hidden;
+}
+
+body.auth-ready {
+  visibility: visible;
+}
+    
   html {
   scroll-behavior: auto !important;
   scroll-restoration: manual;
