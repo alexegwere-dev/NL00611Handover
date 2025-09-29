@@ -3925,59 +3925,10 @@ window.AppRoot = OnlineShiftHandoverSystem;
     root.render(React.createElement(App));
   </script>
 
- <!-- Hide demo login details (cards + heading) -->
-  <script>
-  (function(){
-    function hideDemo(){
-      // hide the "Available Demo Accounts" heading
-      document.querySelectorAll('h3, h2').forEach(h => {
-        if (/Available Demo Accounts/i.test(h.textContent)) {
-          h.style.display = 'none';
-        }
-      });
-      // hide any card that contains "Username: admin" or "Username: maintenance"
-      const texts = [/Username:\s*admin/i, /Username:\s*maintenance/i];
-      document.querySelectorAll('div, p').forEach(el => {
-        const t = el.textContent || '';
-        if (texts.some(re => re.test(t))) {
-          let n = el;
-          for (let i=0;i<6 && n;i++){
-            if (n.classList && n.classList.contains('rounded')) { n.style.display = 'none'; break; }
-            n = n.parentElement;
-          }
-        }
-      });
-    }
-    const obs = new MutationObserver(() => requestAnimationFrame(hideDemo));
-    obs.observe(document.documentElement, {subtree:true, childList:true});
-    hideDemo();
-  })();
-  </script>
+ 
 
 
-  <!-- Hide "Show Demo Credentials" link -->
-  <script>
-  (function(){
-    function hideDemoLink(){
-      const match = /\bShow\s+Demo\s+Credentials\b/i;
-      document.querySelectorAll('a,button,div,span,p').forEach(el=>{
-        const t = (el.textContent || '').trim();
-        if (match.test(t)){
-          // Hide the element itself
-          el.style.display = 'none';
-          // Also hide any clickable parent wrapper
-          let n = el.parentElement;
-          for (let i=0; i<5 && n; i++){
-            if (n.tagName === 'A' || n.tagName === 'BUTTON') { n.style.display='none'; break; }
-            n = n.parentElement;
-          }
-        }
-      });
-    }
-    const obs = new MutationObserver(() => requestAnimationFrame(hideDemoLink));
-    obs.observe(document.documentElement, {subtree:true, childList:true});
-    hideDemoLink();
-  })();
+
 
 // Prevent night shift jumping - Simple solution
 let preventJump = false;
