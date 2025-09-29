@@ -48,7 +48,8 @@ const adminHash = bcrypt.hashSync(ADMIN_PASSWORD, 10);
 
 await client.query(`INSERT INTO users (username, password_hash, role, name)
                     VALUES ('admin', $1, 'admin', 'System Administrator')
-                    ON CONFLICT (username) DO NOTHING`, [adminHash]);
+                    ON CONFLICT (username) DO UPDATE SET password_hash = $1`,
+                    [adminHash]);
             
     console.log('Database initialized successfully');
   } catch (err) {
@@ -262,4 +263,5 @@ app.get('*', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
