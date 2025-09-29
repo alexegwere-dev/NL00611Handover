@@ -3788,30 +3788,44 @@ const OnlineShiftHandoverSystem = () => {
     checkExistingSession();
   }, []);
 
-const checkExistingSession = async () => {
-  const sessionId = localStorage.getItem('sessionId');
-  if (sessionId) {
-    try {
-      const session = await AuthAPI.validateSession(sessionId);
-      if (session) {
-        setCurrentUser({
-          username: session.username,
-          role: session.role,
-          name: session.name
-        });
-        setIsAuthenticated(true);
-      } else {
+
+  const checkExistingSession = async () => {
+    const sessionId = localStorage.getItem('sessionId');
+    if (sessionId) {
+      try {
+        const session = await AuthAPI.validateSession(sessionId);
+        if (session) {
+          setCurrentUser({
+            username: session.username,
+            role: session.role,
+            name: session.name
+          });
+          setIsAuthenticated(true);
+        } else {
+          localStorage.removeItem('sessionId');
+        }
+      } catch (error) {
+        console.error('Session validation failed:', error);
         localStorage.removeItem('sessionId');
       }
-    } catch (error) {
-      console.error('Session validation failed:', error);
+    }
+    setLoading(false);
+  };
+
+  const handleLogin = (user) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = async () => {
+    const sessionId = localStorage.getItem('sessionId');
+    if (sessionId) {
+      await AuthAPI.logout(sessionId);
       localStorage.removeItem('sessionId');
     }
-  }
-  setLoading(false);
-  document.body.classList.remove('checking-auth');
-  document.body.classList.add('auth-ready');
-};
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+  };
 
   const handleLogout = async () => {
     const sessionId = localStorage.getItem('sessionId');
