@@ -42,10 +42,13 @@ async function initDatabase() {
       last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
     
-    const adminHash = bcrypt.hashSync('admin123', 10);
-    await client.query(`INSERT INTO users (username, password_hash, role, name) 
-            VALUES ('admin', $1, 'admin', 'System Administrator')
-            ON CONFLICT (username) DO NOTHING`, [adminHash]);
+    // Read admin password from environment variable
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'temporaryDefaultPassword';
+const adminHash = bcrypt.hashSync(ADMIN_PASSWORD, 10);
+
+await client.query(`INSERT INTO users (username, password_hash, role, name)
+                    VALUES ('admin', $1, 'admin', 'System Administrator')
+                    ON CONFLICT (username) DO NOTHING`, [adminHash]);
             
     console.log('Database initialized successfully');
   } catch (err) {
@@ -259,3 +262,4 @@ app.get('*', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
+
