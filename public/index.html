@@ -177,8 +177,7 @@ const LoginPage = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showDemoCredentials, setShowDemoCredentials] = useState(false);
-
+ 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -195,21 +194,7 @@ const LoginPage = ({ onLogin }) => {
     }
   };
 
-  const demoLogin = async (user) => {
-    setLoading(true);
-    setError('');
-    
-    try {
-      const result = await AuthAPI.login(user.username, user.password);
-      localStorage.setItem('sessionId', result.sessionId);
-      onLogin(result.user);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+ 
   return (
 <div className="min-h-screen bg-gradient-to-br from-teal-800 via-teal-800 to-teal-900 flex items-center justify-center p-4">
 
