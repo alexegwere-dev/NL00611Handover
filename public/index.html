@@ -1856,6 +1856,7 @@ if (showAlert) {
                 <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>
                   KPI's
                 </div>
+                
                 <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
                   <div className="grid grid-cols-2 text-xs">
                     <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9 '}}>Planned PPM</div>
@@ -1877,10 +1878,17 @@ if (showAlert) {
                           }));
                         }}
                         className="w-full text-xs focus:outline-none p-0"
-                        style={{border: 'none', background: 'transparent'}}
+                        style={{
+  border: 'none', 
+  background: 'transparent',
+  fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+  fontWeight: '600',
+  color: '#1f4e3d'
+}}
                       />
                     </div>
                   </div>
+                  
                   <div className="grid grid-cols-2 text-xs border-t border-gray-400">
                   <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9 '}}>Completed PPM</div>
                    <div className="p-1 bg-white">
@@ -1907,10 +1915,16 @@ if (showAlert) {
                               : 'bg-green-300'
                             : ''
                         }`}
-                        style={{border: 'none'}}
+                        style={{
+  border: 'none',
+  fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+  fontWeight: '600',
+  color: '#1f4e3d'
+}}
                       />
                     </div>
                   </div>
+                  
                   <div className="grid grid-cols-2 text-xs border-t border-gray-400">
   <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9 '}}>Total breakdowns</div>
   <div className="p-1 bg-white">
@@ -1931,8 +1945,13 @@ if (showAlert) {
                           }));
                         }}
                         className="w-full text-xs border-0 focus:outline-none p-0"
-                      />
-                    </div>
+    style={{
+      fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+      fontWeight: '600',
+      color: '#1f4e3d'
+    }}
+  />
+</div>
                   </div>
                 </div>
               </div>
@@ -1945,49 +1964,59 @@ if (showAlert) {
                 <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
                   <div className="grid grid-cols-2 text-xs">
                     <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9 '}}>Accidents</div>
-                    <div className="p-1 bg-white">
-                      <input
-                        type="text"
-                        value={data.accidents || ''}
-                        onChange={(e) => {
-                          const newValue = e.target.value;
-                          setHandoverData(prev => ({
-                            ...prev,
-                            [day]: {
-                              ...prev[day],
-                              [shift]: {
-                                ...prev[day]?.[shift],
-                                accidents: newValue
-                              }
-                            }
-                          }));
-                        }}
-                        className="w-full text-xs border-0 focus:outline-none p-0"
-                      />
-                    </div>
+                  <div className="p-1 bg-white">
+  <input
+    type="text"
+    value={data.accidents || ''}
+    onChange={(e) => {
+      const newValue = e.target.value;
+      setHandoverData(prev => ({
+        ...prev,
+        [day]: {
+          ...prev[day],
+          [shift]: {
+            ...prev[day]?.[shift],
+            accidents: newValue
+          }
+        }
+      }));
+    }}
+    className="w-full text-xs border-0 focus:outline-none p-0"
+    style={{
+      fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+      fontWeight: '600',
+      color: '#1f4e3d'
+    }}
+  />
+</div>
                   </div>
                   <div className="grid grid-cols-2 text-xs border-t border-gray-400">
                  <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9 '}}>Near Misses</div>
                     <div className="p-1 bg-white">
-                      <input
-                        type="text"
-                        value={data.nearMisses || ''}
-                        onChange={(e) => {
-                          const newValue = e.target.value;
-                          setHandoverData(prev => ({
-                            ...prev,
-                            [day]: {
-                              ...prev[day],
-                              [shift]: {
-                                ...prev[day]?.[shift],
-                                nearMisses: newValue
-                              }
-                            }
-                          }));
-                        }}
-                        className="w-full text-xs border-0 focus:outline-none p-0"
-                      />
-                    </div>
+  <input
+    type="text"
+    value={data.nearMisses || ''}
+    onChange={(e) => {
+      const newValue = e.target.value;
+      setHandoverData(prev => ({
+        ...prev,
+        [day]: {
+          ...prev[day],
+          [shift]: {
+            ...prev[day]?.[shift],
+            nearMisses: newValue
+          }
+        }
+      }));
+    }}
+    className="w-full text-xs border-0 focus:outline-none p-0"
+    style={{
+      fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif',
+      fontWeight: '600',
+      color: '#1f4e3d'
+    }}
+  />
+</div>
                   </div>
                 </div>
               </div>
@@ -2222,7 +2251,7 @@ if (showAlert) {
                   RANDOM STOCK CHECK
                 </div>
                 <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
-                  <div className="grid grid-cols-4 gap-0" style={{backgroundColor: '#e6f4f0'}}>
+                  <div className="grid grid-cols-4 gap-0" style={{backgroundColor: '#d1eee9'}}>
                     <div className="border-r border-gray-400 p-1 text-xs font-bold text-center">LOCATION</div>
                     <div className="border-r border-gray-400 p-1 text-xs font-bold text-center">CODE</div>
                     <div className="border-r border-gray-400 p-1 text-xs font-bold text-center">CMMS QTY</div>
