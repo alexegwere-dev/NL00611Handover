@@ -61,6 +61,7 @@ body.updating {
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
+  <body class="checking-auth">
   <div id="root"></div>
   <script type="text/babel" data-presets="react,typescript">
     const { useState, useEffect, useMemo, useRef } = React;
@@ -3787,33 +3788,30 @@ const OnlineShiftHandoverSystem = () => {
     checkExistingSession();
   }, []);
 
-  const checkExistingSession = async () => {
-    const sessionId = localStorage.getItem('sessionId');
-    if (sessionId) {
-      try {
-        const session = await AuthAPI.validateSession(sessionId);
-        if (session) {
-          setCurrentUser({
-            username: session.username,
-            role: session.role,
-            name: session.name
-          });
-          setIsAuthenticated(true);
-        } else {
-          localStorage.removeItem('sessionId');
-        }
-      } catch (error) {
-        console.error('Session validation failed:', error);
+const checkExistingSession = async () => {
+  const sessionId = localStorage.getItem('sessionId');
+  if (sessionId) {
+    try {
+      const session = await AuthAPI.validateSession(sessionId);
+      if (session) {
+        setCurrentUser({
+          username: session.username,
+          role: session.role,
+          name: session.name
+        });
+        setIsAuthenticated(true);
+      } else {
         localStorage.removeItem('sessionId');
       }
+    } catch (error) {
+      console.error('Session validation failed:', error);
+      localStorage.removeItem('sessionId');
     }
-    setLoading(false);
-  };
-
-  const handleLogin = (user) => {
-    setCurrentUser(user);
-    setIsAuthenticated(true);
-  };
+  }
+  setLoading(false);
+  document.body.classList.remove('checking-auth');
+  document.body.classList.add('auth-ready');
+};
 
   const handleLogout = async () => {
     const sessionId = localStorage.getItem('sessionId');
