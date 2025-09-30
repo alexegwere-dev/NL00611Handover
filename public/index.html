@@ -3878,37 +3878,7 @@ window.AppRoot = OnlineShiftHandoverSystem;
  
 
 
-
-
-// Prevent night shift jumping - Simple solution
-let preventJump = false;
-
-document.addEventListener('input', function(e) {
-  if (preventJump) return;
-  
-  const currentScrollTop = window.pageYOffset;
-  
-  preventJump = true;
-  
-  setTimeout(() => {
-    window.scrollTo(0, currentScrollTop);
-    preventJump = false;
-  }, 0);
-});
-
-document.addEventListener('change', function(e) {
-  if (preventJump) return;
-  
-  const currentScrollTop = window.pageYOffset;
-  
-  preventJump = true;
-  
-  setTimeout(() => {
-    window.scrollTo(0, currentScrollTop);
-    preventJump = false;
-  }, 0);
-});
-  </script>
-
+ </script>
 </body>
 </html>
+
