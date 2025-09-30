@@ -3874,11 +3874,41 @@ window.AppRoot = OnlineShiftHandoverSystem;
     const App = window.AppRoot || OnlineShiftHandoverSystem || (()=>React.createElement('div', null, 'App not found'));
     root.render(React.createElement(App));
   </script>
+root.render(React.createElement(App));
+  </script>
 
- 
+  <script>
+    // Prevent scroll jumping during interactions
+    let preventJump = false;
 
+    document.addEventListener('input', function(e) {
+      if (preventJump) return;
+      
+      const currentScrollTop = window.pageYOffset;
+      
+      preventJump = true;
+      
+      setTimeout(() => {
+        window.scrollTo(0, currentScrollTop);
+        preventJump = false;
+      }, 0);
+    });
 
- </script>
+    document.addEventListener('change', function(e) {
+      if (preventJump) return;
+      
+      const currentScrollTop = window.pageYOffset;
+      
+      preventJump = true;
+      
+      setTimeout(() => {
+        window.scrollTo(0, currentScrollTop);
+        preventJump = false;
+      }, 0);
+    });
+  </script>
+
 </body>
 </html>
+
 
