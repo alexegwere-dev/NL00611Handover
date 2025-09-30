@@ -1650,72 +1650,78 @@ useEffect(() => {
     }
   ];
 
-  const loadHandoverData = async () => {
-    setLoading(true);
-    try {
-      const weekId = `${currentYear}-CW${currentWeek + 1}`;
+const loadHandoverData = async () => {
+  const currentScroll = window.pageYOffset;
+  setLoading(true);
+  
+  try {
+    const weekId = `${currentYear}-CW${currentWeek + 1}`;
+    
+    let savedData = await ShiftHandoverAPI.getHandover(weekId);
+    
+    if (savedData && savedData.weekId) {
+      setHandoverData(savedData);
+    } else {
+      const defaultShift = {
+        plannedPPM: '',
+        completedPPM: '',
+        totalBreakdowns: '',
+        accidents: '0',
+        nearMisses: '0',
+        teamColor: 'YELLOW',
+        engineers: teamEngineers.YELLOW.map(name => ({
+          name: name,
+          status: '',
+          timeBooked: '',
+          breakdown: '',
+          completedPPM: ''
+        })),
+        additionalInfo: '',
+        randomStockCheck: Array(20).fill('')
+      };
+
+      const createShiftData = () => ({
+        earlyShift: JSON.parse(JSON.stringify(defaultShift)),
+        lateShift: JSON.parse(JSON.stringify(defaultShift)),
+        nightShift: JSON.parse(JSON.stringify(defaultShift))
+      });
+
+      const initialData = {
+        weekId,
+        mondayShift: createShiftData(),
+        tuesdayShift: createShiftData(),
+        wednesdayShift: createShiftData(),
+        thursdayShift: createShiftData(),
+        fridayShift: createShiftData(),
+        saturdayShift: createShiftData(),
+        sundayShift: createShiftData()
+      };
+
+      const daysOfWeek = ['mondayShift', 'tuesdayShift', 'wednesdayShift', 'thursdayShift', 'fridayShift', 'saturdayShift', 'sundayShift'];
+      const shifts = ['earlyShift', 'lateShift', 'nightShift'];
       
-      let savedData = await ShiftHandoverAPI.getHandover(weekId);
-      
-      if (savedData && savedData.weekId) {
-        setHandoverData(savedData);
-      } else {
-        const defaultShift = {
-          plannedPPM: '',
-          completedPPM: '',
-          totalBreakdowns: '',
-          accidents: '0',
-          nearMisses: '0',
-          teamColor: 'YELLOW',
-          engineers: teamEngineers.YELLOW.map(name => ({
-            name: name,
-            status: '',
-            timeBooked: '',
-            breakdown: '',
-            completedPPM: ''
-          })),
-          additionalInfo: '',
-          randomStockCheck: Array(20).fill('')
-        };
-
-        const createShiftData = () => ({
-          earlyShift: JSON.parse(JSON.stringify(defaultShift)),
-          lateShift: JSON.parse(JSON.stringify(defaultShift)),
-          nightShift: JSON.parse(JSON.stringify(defaultShift))
-        });
-
-        const initialData = {
-          weekId,
-          mondayShift: createShiftData(),
-          tuesdayShift: createShiftData(),
-          wednesdayShift: createShiftData(),
-          thursdayShift: createShiftData(),
-          fridayShift: createShiftData(),
-          saturdayShift: createShiftData(),
-          sundayShift: createShiftData()
-        };
-
-        const daysOfWeek = ['mondayShift', 'tuesdayShift', 'wednesdayShift', 'thursdayShift', 'fridayShift', 'saturdayShift', 'sundayShift'];
-        const shifts = ['earlyShift', 'lateShift', 'nightShift'];
-        
-        for (const day of daysOfWeek) {
-          for (const shift of shifts) {
-            if (initialData[day] && initialData[day][shift]) {
-              initialData[day][shift].randomStockCheck = Array(20).fill('');
-              initialData[day][shift].endOfShiftChecklist = Array(7).fill(false);
-            }
+      for (const day of daysOfWeek) {
+        for (const shift of shifts) {
+          if (initialData[day] && initialData[day][shift]) {
+            initialData[day][shift].randomStockCheck = Array(20).fill('');
+            initialData[day][shift].endOfShiftChecklist = Array(7).fill(false);
           }
         }
-
-        setHandoverData(initialData);
       }
-      
-    } catch (error) {
-      console.error('Failed to load handover data:', error);
-    } finally {
-      setLoading(false);
+
+      setHandoverData(initialData);
     }
-  };
+    
+  } catch (error) {
+    console.error('Failed to load handover data:', error);
+  } finally {
+    setLoading(false);
+    // Restore scroll position after loading completes
+    setTimeout(() => {
+      window.scrollTo(0, currentScroll);
+    }, 50);
+  }
+};
 const loadWeeklyActions = async () => {
   try {
     const weekId = `${currentYear}-CW${currentWeek + 1}`;
