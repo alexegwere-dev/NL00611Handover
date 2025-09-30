@@ -1771,14 +1771,29 @@ const loadWeeklyActions = async () => {
     setLastSaved(new Date());
     
     if (showAlert) {
-      alert('Handover data saved successfully!');
-    }
+  // Show subtle notification instead of alert
+  const notification = document.createElement('div');
+  notification.textContent = 'Handover saved successfully';
+  notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; z-index: 10000; font-weight: 600;';
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.remove();
+  }, 2000);
+}
   } catch (error) {
     console.error('Failed to save handover data:', error);
     setAutoSaveStatus('error');
-    if (showAlert) {
-      alert('Failed to save handover data. Please try again.');
-    }
+  if (showAlert) {
+  const notification = document.createElement('div');
+  notification.textContent = 'Failed to save handover data';
+  notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 12px 24px; border-radius: 8px; z-index: 10000; font-weight: 600;';
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.remove();
+  }, 3000);
+}
   } finally {
     window.scrollTo(0, currentScrollPosition);
   }
