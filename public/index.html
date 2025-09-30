@@ -1755,19 +1755,32 @@ const loadWeeklyActions = async () => {
  const saveHandoverData = async (showAlert = true) => {
   const currentScrollPosition = window.pageYOffset;
   
-  // setLoading(true);  // COMMENT OUT
-  
   try {
-    // ... save logic ...
+    const weekId = `${currentYear}-CW${currentWeek + 1}`;
+    
+    // Save main handover data
+    await ShiftHandoverAPI.saveHandover(weekId, handoverData);
+    
+    // Save process confirmation data
+    await ShiftHandoverAPI.saveHandover(`${weekId}-process`, processConfirmation);
+    
+    // Save weekly actions data
+    await ShiftHandoverAPI.saveHandover(`${weekId}-actions`, weeklyActions);
+    
+    setAutoSaveStatus('saved');
+    setLastSaved(new Date());
+    
+    if (showAlert) {
+      alert('Handover data saved successfully!');
+    }
   } catch (error) {
     console.error('Failed to save handover data:', error);
+    setAutoSaveStatus('error');
+    if (showAlert) {
+      alert('Failed to save handover data. Please try again.');
+    }
   } finally {
-    // setLoading(false);  // COMMENT OUT
     window.scrollTo(0, currentScrollPosition);
-
-if (showAlert) {
-  
-}
   }
 };
 
