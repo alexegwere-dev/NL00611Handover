@@ -1489,22 +1489,34 @@ useEffect(() => {
   };
 
   const navigateWeek = (direction) => {
-    if (direction === 'prev') {
-      if (currentWeek === 0) {
-        setCurrentYear(prev => prev - 1);
-        setCurrentWeek(51);
-      } else {
-        setCurrentWeek(prev => prev - 1);
-      }
-    } else if (direction === 'next') {
-      if (currentWeek === 51) {
-        setCurrentYear(prev => prev + 1);
-        setCurrentWeek(0);
-      } else {
-        setCurrentWeek(prev => prev + 1);
-      }
+  // Lock scroll position
+  const currentScroll = window.pageYOffset;
+  document.body.style.overflow = 'hidden';
+  
+  if (direction === 'prev') {
+    if (currentWeek === 0) {
+      setCurrentYear(prev => prev - 1);
+      setCurrentWeek(51);
+    } else {
+      setCurrentWeek(prev => prev - 1);
     }
-  };
+  } else if (direction === 'next') {
+    if (currentWeek === 51) {
+      setCurrentYear(prev => prev + 1);
+      setCurrentWeek(0);
+    } else {
+      setCurrentWeek(prev => prev + 1);
+    }
+  }
+  
+  // Restore scroll after React finishes rendering
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.scrollTo(0, currentScroll);
+      document.body.style.overflow = '';
+    });
+  });
+};
 
   const splitWeeklyPPM = () => {
     const totalPPM = parseFloat(weeklyPPM) || 0;
