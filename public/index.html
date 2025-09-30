@@ -10,6 +10,18 @@
     tailwind.config = { theme: { extend: { } } };
   </script>
   <style>
+/* Smooth week transitions */
+.week-transitioning {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease-out;
+}
+
+.week-ready {
+  opacity: 1;
+  transition: opacity 0.15s ease-in;
+}
+   
 /* Prevent flash of content during initial page load */
 #root:empty::before {
   content: "";
@@ -2662,7 +2674,8 @@ const loadWeeklyActions = async () => {
           </div>
 
 
-          <div className="space-y-6">
+          <div className={loading ? 'week-transitioning' : 'week-ready'}>
+           <div className="space-y-6">
             {loading ? (
               <div className="text-center py-8">
                 <Clock className="w-8 h-8 animate-spin mx-auto mb-4" style={{color: '#008080'}} />
@@ -2800,6 +2813,7 @@ const loadWeeklyActions = async () => {
                   </table>
                 </div>
               </div>
+      </div>
 
 ) : currentDay === 8 ? (
   <div className="bg-white rounded-lg shadow-lg">
