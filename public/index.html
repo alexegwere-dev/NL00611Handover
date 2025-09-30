@@ -2672,15 +2672,14 @@ const loadWeeklyActions = async () => {
           </div>
 
 
-         {loading ? (
-  <div className="text-center py-8">
-    <Clock className="w-8 h-8 animate-spin mx-auto mb-4" style={{color: '#008080'}} />
-    <p>Loading handover data...</p>
-  </div>
-) : (
-  <div className="space-y-6">
-    {currentDay === -1 ? (
-      <DataImportSection
+         <div className="space-y-6">
+  {loading ? (
+    <div className="text-center py-8">
+      <Clock className="w-8 h-8 animate-spin mx-auto mb-4" style={{color: '#008080'}} />
+      <p>Loading handover data...</p>
+    </div>
+  ) : currentDay === -1 ? (
+    <DataImportSection
         handoverData={handoverData}
                 setHandoverData={setHandoverData}
                 currentWeek={currentWeek}
