@@ -3830,16 +3830,7 @@ const OnlineShiftHandoverSystem = () => {
     setIsAuthenticated(false);
   };
 
-  const handleLogout = async () => {
-    const sessionId = localStorage.getItem('sessionId');
-    if (sessionId) {
-      await AuthAPI.logout(sessionId);
-      localStorage.removeItem('sessionId');
-    }
-    setCurrentUser(null);
-    setIsAuthenticated(false);
-  };
-
+  
   const handleUserManagement = () => {
     setShowUserManagement(true);
   };
