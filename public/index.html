@@ -3878,35 +3878,41 @@ window.AppRoot = OnlineShiftHandoverSystem;
  
 
   <script>
-    // Prevent scroll jumping during interactions
-    let preventJump = false;
+  // Smooth scroll prevention for form interactions
+  document.addEventListener('focusin', function(e) {
+    if (e.target.matches('input, select, textarea')) {
+      e.preventDefault();
+      window.scrollTo({
+        top: window.pageYOffset,
+        behavior: 'instant'
+      });
+    }
+  }, true);
 
-    document.addEventListener('input', function(e) {
-      if (preventJump) return;
-      
-      const currentScrollTop = window.pageYOffset;
-      
-      preventJump = true;
-      
-      setTimeout(() => {
-        window.scrollTo(0, currentScrollTop);
-        preventJump = false;
-      }, 0);
+  // Prevent scroll on input changes
+  let isUpdating = false;
+  document.addEventListener('input', function(e) {
+    if (isUpdating) return;
+    isUpdating = true;
+    
+    requestAnimationFrame(() => {
+      isUpdating = false;
     });
+  }, true);
 
-    document.addEventListener('change', function(e) {
-      if (preventJump) return;
-      
-      const currentScrollTop = window.pageYOffset;
-      
-      preventJump = true;
-      
-      setTimeout(() => {
-        window.scrollTo(0, currentScrollTop);
-        preventJump = false;
-      }, 0);
+  // Smooth handling for select/checkbox changes
+  document.addEventListener('change', function(e) {
+    const scrollY = window.pageYOffset;
+    requestAnimationFrame(() => {
+      if (Math.abs(window.pageYOffset - scrollY) > 5) {
+        window.scrollTo({
+          top: scrollY,
+          behavior: 'instant'
+        });
+      }
     });
-  </script>
+  }, true);
+</script>
 
 </body>
 </html>
