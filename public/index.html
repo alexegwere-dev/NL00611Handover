@@ -689,9 +689,9 @@ const DataImportSection = ({ handoverData, setHandoverData, currentWeek, current
   }, [csvData, selectedDate, selectedShift, selectedTeam, parsedData, additionalInfo, randomStockCheckData, currentWeek, currentYear]);
 
   const shiftTimes = {
-    earlyShift: { start: '05:30', end: '14:00', name: 'Early Shift' },
-    lateShift: { start: '13:30', end: '22:00', name: 'Late Shift' },
-    nightShift: { start: '21:30', end: '06:00', name: 'Night Shift' }
+    earlyShift: { start: '05:15', end: '14:00', name: 'Early Shift' },
+    lateShift: { start: '13:15', end: '22:00', name: 'Late Shift' },
+    nightShift: { start: '21:15', end: '06:00', name: 'Night Shift' }
   };
 
   const convertTimeToHours = (timeString) => {
