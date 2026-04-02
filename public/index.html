@@ -770,6 +770,38 @@ const DataImportSection = ({ handoverData, setHandoverData, currentWeek, current
     }
 
     setProcessing(true);
+
+  // UUID to Engineer Name mapping
+const uuidToName = {
+  // YELLOW
+  '895275da-fb4b-4e40-ba60-0f93149a71e7': 'Saad, Manuel',
+  '4506e4c0-e099-4b40-9492-41eebbefa98c': 'Negro, Carlos',
+  'a3104640-5efb-4e71-b621-2676eff2fa83': 'Pinilla, Gabriel',
+  '681f4598-ea47-4e73-9d82-2df8130b059f': 'Lichnos, Dimitris',
+  'a817bb94-c316-4c4f-b563-b73f9c8c82be': 'Karagiannis, Georgios',
+  // BLUE
+  '2f6ccf61-3e39-4ac6-910e-d9e83e1bd6e6': 'Lagares, Angel',
+  'dc6f0944-e202-4d5e-8299-63c008bd8e4b': 'Kyminos, Kostas',
+  'a4dea325-2a85-481c-b6b4-2d6bad8785e6': 'Faillace, Sebastian',
+  '89101f16-1733-4ae2-bc4f-6308b060bc5c': 'Radaios, Anastasios',
+  // GREEN
+  '3520d7df-8548-42d4-961b-8f8e0ef89981': 'Toporek, Patryk',
+  '9fb12421-a73f-4893-9a16-8ed743a964a1': 'Papaioannou, Georgios',
+  // RED
+  'f2406f88-456f-4153-a675-422f837578f0': 'Kubik, Ariel',
+  '774d002c-183b-4087-8a50-a5866cecb25b': 'Redan, Jermaine',
+  'c4fb5522-1aed-4959-8533-ee0817df19db': 'Molendijk, Miguel',
+  '8fa0cd3e-4657-4088-8f87-bed36abc5d18': 'Guimaraes, Carlos',
+  '59385ebe-993d-4d1f-828c-8e29cdac7f0b': 'Bogazoglu, Osman',
+  '0c3cbd91-4b47-4875-855b-2c5cae8f2b36': 'Alkabalan, Muhammad',
+  // ORANGE
+  '8d9432fb-0d2b-4c5c-99d1-590943dcbc3a': 'Polac, Paul',
+  '3b95c1fd-1f5a-4817-8104-7a9ed75626bd': 'Habibi, Roul',
+  '4fa2b6e1-a0d2-43a0-9e15-8575e235af01': 'Lachman, Henk',
+  '1f066c0d-6a0a-4dea-99a4-fc8f5b15ce8d': 'Wachowiak, Adam',
+  'ab7cef74-cbb0-407d-b4f2-97759819ee7f': 'Keuzenkamp, Michael',
+  '3f4ec64c-5a24-4948-9c72-b097e10e3558': 'Moohialdin, Moohialdin',
+};
     
     try {
       const lines = csvData.trim().split('\n');
@@ -786,11 +818,11 @@ const DataImportSection = ({ handoverData, setHandoverData, currentWeek, current
       
       const headers = lines[0].split(separator).map(h => h.trim().toLowerCase());
       
-      const reasonIndex = headers.findIndex(h => h.includes('reason'));
-      const statusIndex = headers.findIndex(h => h.includes('status'));
-      const operatorIndex = headers.findIndex(h => h.includes('operator in charge') || h.includes('operator'));
-      const startTimeIndex = headers.findIndex(h => h.includes('start time') || h.includes('start_time'));
-      const endTimeIndex = headers.findIndex(h => h.includes('end time') || h.includes('end_time'));
+      const reasonIndex = headers.findIndex(h => h.includes('reasonname') || h.includes('reason'));
+     const statusIndex = headers.findIndex(h => h.includes('status'));
+     const operatorIndex = headers.findIndex(h => h.includes('responsibleoperator') || h.includes('createdby') || h.includes('operator in charge') || h.includes('operator'));
+    const startTimeIndex = headers.findIndex(h => h.includes('startdatetime') || h.includes('start time') || h.includes('start_time'));
+      const endTimeIndex = headers.findIndex(h => h.includes('enddatetime') || h.includes('end time') || h.includes('end_time'));
       
       const durationHMSIndex = headers.findIndex(h => h.includes('duration (hh:mm:ss)'));
       const durationDecimalIndex = headers.findIndex(h => h.includes('duration (h.h)') || h.includes('duration') || h.includes('hrs'));
