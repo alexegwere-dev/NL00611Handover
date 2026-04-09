@@ -2421,23 +2421,17 @@ const loadWeeklyActions = async () => {
     className="text-center py-1 px-2 font-bold text-sm text-white"
     style={{ backgroundColor: '#008080' }}
   >
-    {/* End of Shift Checklist */}
-<div className="mb-4">
-  <div
-    className="text-center py-1 px-2 font-bold text-sm text-white"
-    style={{ backgroundColor: '#008080' }}
-  >
     END OF SHIFT CHECKLIST
   </div>
 
   {/* Removed the scroll styles here */}
-   <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
+ <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
     {[
       'Shift report complete?',
-      'All handover topics discussed?',
-      'Shift handover checklist complete?',
-      'Shift process confirmation comeplete?',
-      'Knapp area returned to 5S picture standard?'
+'All handover topics discussed?',
+'Shift handover checklist complete?',
+'Shift process confirmation complete?',
+'Knapp area returned to 5S picture standard?'
 
     ].map((item, index) => {
       const isChecked = data.endOfShiftChecklist?.[index] || false;
@@ -2447,43 +2441,51 @@ const loadWeeklyActions = async () => {
           className={`flex items-start p-2 border-b border-gray-200 last:border-b-0 cursor-pointer transition-colors ${
             isChecked ? 'bg-green-100' : 'hover:bg-gray-50'
           }`}
-          onClick={() => {
-            // allow clicking the row to toggle too
-            const nextVal = !isChecked;
-            setHandoverData(prev => {
-              const newData = { ...prev };
-              if (!newData[day]) newData[day] = {};
-              if (!newData[day][shift]) newData[day][shift] = {};
-              if (!newData[day][shift].endOfShiftChecklist) {
-                // set to 7 to match the 7 items below
-                newData[day][shift].endOfShiftChecklist = Array(7).fill(false);
-              }
-              const newArray = [...newData[day][shift].endOfShiftChecklist];
-              newArray[index] = nextVal;
-              newData[day][shift].endOfShiftChecklist = newArray;
-              return newData;
-            });
-          }}
+  onClick={(e) => {
+  e.preventDefault(); // Prevent default to avoid conflicts
+  const currentScrollPosition = window.pageYOffset;
+  const nextVal = !isChecked;
+  
+  setHandoverData(prev => {
+    const newData = { ...prev };
+    if (!newData[day]) newData[day] = {};
+    if (!newData[day][shift]) newData[day][shift] = {};
+    if (!newData[day][shift].endOfShiftChecklist) {
+      newData[day][shift].endOfShiftChecklist = Array(7).fill(false);
+    }
+    const newArray = [...newData[day][shift].endOfShiftChecklist];
+    newArray[index] = nextVal;
+    newData[day][shift].endOfShiftChecklist = newArray;
+    return newData;
+  });
+  
+  // Immediate scroll restoration
+  window.scrollTo(0, currentScrollPosition);
+}}
         >
           <input
             type="checkbox"
             id={`${shift}-checklist-${index}`}
-            checked={isChecked}
-            onChange={(e) => {
-              const isChecked = e.target.checked;
-              setHandoverData(prev => {
-                const newData = { ...prev };
-                if (!newData[day]) newData[day] = {};
-                if (!newData[day][shift]) newData[day][shift] = {};
-                if (!newData[day][shift].endOfShiftChecklist) {
-                  newData[day][shift].endOfShiftChecklist = Array(7).fill(false);
-                }
-                const newArray = [...newData[day][shift].endOfShiftChecklist];
-                newArray[index] = isChecked;
-                newData[day][shift].endOfShiftChecklist = newArray;
-                return newData;
-              });
-            }}
+           onChange={(e) => {
+  const currentScrollPosition = window.pageYOffset;
+  const isChecked = e.target.checked;
+  
+  setHandoverData(prev => {
+    const newData = { ...prev };
+    if (!newData[day]) newData[day] = {};
+    if (!newData[day][shift]) newData[day][shift] = {};
+    if (!newData[day][shift].endOfShiftChecklist) {
+      newData[day][shift].endOfShiftChecklist = Array(7).fill(false);
+    }
+    const newArray = [...newData[day][shift].endOfShiftChecklist];
+    newArray[index] = isChecked;
+    newData[day][shift].endOfShiftChecklist = newArray;
+    return newData;
+  });
+  
+  // Immediate scroll restoration
+  window.scrollTo(0, currentScrollPosition);
+}}
             className="mr-3 mt-1 w-4 h-4 flex-shrink-0"
             style={{ accentColor: '#008080' }}
             onClick={(e) => e.stopPropagation()} // prevent double toggle due to row onClick
@@ -2526,6 +2528,7 @@ const loadWeeklyActions = async () => {
                 ? '#10b981'
                 : '#008080'
           }}
+
 
                       />
                     </div>
