@@ -2427,13 +2427,11 @@ const loadWeeklyActions = async () => {
   {/* Removed the scroll styles here */}
  <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
     {[
-      'Are all personal belongings cleared?',
-      'Is the workshop clean, tidy, and all tools stored?',
-      'Is the DRM filled and checked for pending actions?',
-      'Have all used spare parts been booked and zero-stock reported?',
-      'Have all team CMMS tasks been reviewed, updated, and closed?',
-      'Have pending Knapp/TechJira tickets been handed to the next shift?',
-      'Have all breakdowns or temporary fixes been explained to the next shift?'
+      'Shift report complete?',
+      'Shift handover checklist complete?',
+      'Shift process confirmation comeplete?',
+      'Knapp area returned to 5S picture standard?',
+      'All handover topics discussed?'
     ].map((item, index) => {
       const isChecked = data.endOfShiftChecklist?.[index] || false;
       return (
