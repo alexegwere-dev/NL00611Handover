@@ -2462,7 +2462,8 @@ const loadWeeklyActions = async () => {
   // Immediate scroll restoration
   window.scrollTo(0, currentScrollPosition);
 }}
-        <input
+        >
+          <input
             type="checkbox"
             id={`${shift}-checklist-${index}`}
            onChange={(e) => {
@@ -2489,6 +2490,7 @@ const loadWeeklyActions = async () => {
             style={{ accentColor: '#008080' }}
             onClick={(e) => e.stopPropagation()} // prevent double toggle due to row onClick
           />
+
           <label
             htmlFor={`${shift}-checklist-${index}`}
             className={`text-xs cursor-pointer flex-1 leading-relaxed font-medium ${
