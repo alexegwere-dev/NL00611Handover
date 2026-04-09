@@ -2463,33 +2463,32 @@ const loadWeeklyActions = async () => {
   window.scrollTo(0, currentScrollPosition);
 }}
         <input
-  type="checkbox"
-  id={`${shift}-checklist-${index}`}
-  checked={isChecked}
-  onChange={(e) => {
-    const currentScrollPosition = window.pageYOffset;
-    const newCheckedValue = e.target.checked;  // ← renamed from 'isChecked'
-    
-    setHandoverData(prev => {
-      const newData = { ...prev };
-      if (!newData[day]) newData[day] = {};
-      if (!newData[day][shift]) newData[day][shift] = {};
-      if (!newData[day][shift].endOfShiftChecklist) {
-        newData[day][shift].endOfShiftChecklist = Array(5).fill(false);
-      }
-      const newArray = [...newData[day][shift].endOfShiftChecklist];
-      newArray[index] = newCheckedValue;  // ← use renamed variable
-      newData[day][shift].endOfShiftChecklist = newArray;
-      return newData;
-    });
-    
-    // Immediate scroll restoration
-    window.scrollTo(0, currentScrollPosition);
-  }}
-  className="mr-3 mt-1 w-4 h-4 flex-shrink-0"
-  style={{ accentColor: '#008080' }}
-  onClick={(e) => e.stopPropagation()}
-/>
+            type="checkbox"
+            id={`${shift}-checklist-${index}`}
+           onChange={(e) => {
+  const currentScrollPosition = window.pageYOffset;
+  const isChecked = e.target.checked;
+  
+  setHandoverData(prev => {
+    const newData = { ...prev };
+    if (!newData[day]) newData[day] = {};
+    if (!newData[day][shift]) newData[day][shift] = {};
+    if (!newData[day][shift].endOfShiftChecklist) {
+      newData[day][shift].endOfShiftChecklist = Array(7).fill(false);
+    }
+    const newArray = [...newData[day][shift].endOfShiftChecklist];
+    newArray[index] = isChecked;
+    newData[day][shift].endOfShiftChecklist = newArray;
+    return newData;
+  });
+  
+  // Immediate scroll restoration
+  window.scrollTo(0, currentScrollPosition);
+}}
+            className="mr-3 mt-1 w-4 h-4 flex-shrink-0"
+            style={{ accentColor: '#008080' }}
+            onClick={(e) => e.stopPropagation()} // prevent double toggle due to row onClick
+          />
           <label
             htmlFor={`${shift}-checklist-${index}`}
             className={`text-xs cursor-pointer flex-1 leading-relaxed font-medium ${
