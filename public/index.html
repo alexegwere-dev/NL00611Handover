@@ -2421,17 +2421,24 @@ const loadWeeklyActions = async () => {
     className="text-center py-1 px-2 font-bold text-sm text-white"
     style={{ backgroundColor: '#008080' }}
   >
-    FIVE POINT SHIFT CHECKLIST
+    {/* End of Shift Checklist */}
+<div className="mb-4">
+  <div
+    className="text-center py-1 px-2 font-bold text-sm text-white"
+    style={{ backgroundColor: '#008080' }}
+  >
+    END OF SHIFT CHECKLIST
   </div>
 
   {/* Removed the scroll styles here */}
- <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
+   <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
     {[
       'Shift report complete?',
+      'All handover topics discussed?',
       'Shift handover checklist complete?',
       'Shift process confirmation comeplete?',
-      'Knapp area returned to 5S picture standard?',
-      'All handover topics discussed?'
+      'Knapp area returned to 5S picture standard?'
+
     ].map((item, index) => {
       const isChecked = data.endOfShiftChecklist?.[index] || false;
       return (
@@ -2440,51 +2447,43 @@ const loadWeeklyActions = async () => {
           className={`flex items-start p-2 border-b border-gray-200 last:border-b-0 cursor-pointer transition-colors ${
             isChecked ? 'bg-green-100' : 'hover:bg-gray-50'
           }`}
-  onClick={(e) => {
-  e.preventDefault(); // Prevent default to avoid conflicts
-  const currentScrollPosition = window.pageYOffset;
-  const nextVal = !isChecked;
-  
-  setHandoverData(prev => {
-    const newData = { ...prev };
-    if (!newData[day]) newData[day] = {};
-    if (!newData[day][shift]) newData[day][shift] = {};
-    if (!newData[day][shift].endOfShiftChecklist) {
-      newData[day][shift].endOfShiftChecklist = Array(7).fill(false);
-    }
-    const newArray = [...newData[day][shift].endOfShiftChecklist];
-    newArray[index] = nextVal;
-    newData[day][shift].endOfShiftChecklist = newArray;
-    return newData;
-  });
-  
-  // Immediate scroll restoration
-  window.scrollTo(0, currentScrollPosition);
-}}
+          onClick={() => {
+            // allow clicking the row to toggle too
+            const nextVal = !isChecked;
+            setHandoverData(prev => {
+              const newData = { ...prev };
+              if (!newData[day]) newData[day] = {};
+              if (!newData[day][shift]) newData[day][shift] = {};
+              if (!newData[day][shift].endOfShiftChecklist) {
+                // set to 7 to match the 7 items below
+                newData[day][shift].endOfShiftChecklist = Array(7).fill(false);
+              }
+              const newArray = [...newData[day][shift].endOfShiftChecklist];
+              newArray[index] = nextVal;
+              newData[day][shift].endOfShiftChecklist = newArray;
+              return newData;
+            });
+          }}
         >
           <input
             type="checkbox"
             id={`${shift}-checklist-${index}`}
-           onChange={(e) => {
-  const currentScrollPosition = window.pageYOffset;
-  const isChecked = e.target.checked;
-  
-  setHandoverData(prev => {
-    const newData = { ...prev };
-    if (!newData[day]) newData[day] = {};
-    if (!newData[day][shift]) newData[day][shift] = {};
-    if (!newData[day][shift].endOfShiftChecklist) {
-      newData[day][shift].endOfShiftChecklist = Array(7).fill(false);
-    }
-    const newArray = [...newData[day][shift].endOfShiftChecklist];
-    newArray[index] = isChecked;
-    newData[day][shift].endOfShiftChecklist = newArray;
-    return newData;
-  });
-  
-  // Immediate scroll restoration
-  window.scrollTo(0, currentScrollPosition);
-}}
+            checked={isChecked}
+            onChange={(e) => {
+              const isChecked = e.target.checked;
+              setHandoverData(prev => {
+                const newData = { ...prev };
+                if (!newData[day]) newData[day] = {};
+                if (!newData[day][shift]) newData[day][shift] = {};
+                if (!newData[day][shift].endOfShiftChecklist) {
+                  newData[day][shift].endOfShiftChecklist = Array(7).fill(false);
+                }
+                const newArray = [...newData[day][shift].endOfShiftChecklist];
+                newArray[index] = isChecked;
+                newData[day][shift].endOfShiftChecklist = newArray;
+                return newData;
+              });
+            }}
             className="mr-3 mt-1 w-4 h-4 flex-shrink-0"
             style={{ accentColor: '#008080' }}
             onClick={(e) => e.stopPropagation()} // prevent double toggle due to row onClick
@@ -2511,22 +2510,23 @@ const loadWeeklyActions = async () => {
     <div className="p-3 bg-gray-50 border-t border-gray-200">
       <div className="flex justify-between items-center mb-1">
         <span className="text-xs font-medium text-gray-600">
-          Progress: {data.endOfShiftChecklist?.filter(Boolean).length || 0}/7
+          Progress: {data.endOfShiftChecklist?.filter(Boolean).length || 0}/5
         </span>
         <span className="text-xs font-medium text-gray-600">
-          {Math.round(((data.endOfShiftChecklist?.filter(Boolean).length || 0) / 7) * 100)}%
+          {Math.round(((data.endOfShiftChecklist?.filter(Boolean).length || 0) / 5) * 100)}%
         </span>
       </div>
       <div className="w-full bg-gray-300 rounded-full h-2">
         <div
           className="h-2 rounded-full transition-all duration-300"
           style={{
-            width: `${((data.endOfShiftChecklist?.filter(Boolean).length || 0) / 7) * 100}%`,
+            width: `${((data.endOfShiftChecklist?.filter(Boolean).length || 0) / 5) * 100}%`,
             backgroundColor:
-              ((data.endOfShiftChecklist?.filter(Boolean).length || 0) / 7) * 100 === 100
+              ((data.endOfShiftChecklist?.filter(Boolean).length || 0) / 5) * 100 === 100
                 ? '#10b981'
                 : '#008080'
           }}
+
                       />
                     </div>
                   </div>
