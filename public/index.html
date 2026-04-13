@@ -1709,12 +1709,26 @@ const carryForward5SActions = async () => {
         )}
       </div>
       <div className="mt-4">
-        <button className={`${cat.removeBg} text-white px-4 py-2 rounded hover:opacity-90`}
-          onClick={() => {
-            if (confirm('Are you sure you want to remove this action? This cannot be undone.')) {
+        <button
+          onClick={(e) => {
+            const btn = e.currentTarget;
+            if (btn.dataset.confirming === 'true') {
               setWeeklyActions(prev => ({ ...prev, [categoryKey]: prev[categoryKey].filter(item => item.id !== action.id) }));
+              btn.dataset.confirming = 'false';
+              btn.textContent = 'Remove';
+              btn.className = `${cat.removeBg} text-white px-4 py-2 rounded hover:opacity-90`;
+            } else {
+              btn.dataset.confirming = 'true';
+              btn.textContent = 'Click again to confirm';
+              btn.className = 'bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600';
+              setTimeout(() => {
+                btn.dataset.confirming = 'false';
+                btn.textContent = 'Remove';
+                btn.className = `${cat.removeBg} text-white px-4 py-2 rounded hover:opacity-90`;
+              }, 3000);
             }
-          }}>
+          }}
+          className={`${cat.removeBg} text-white px-4 py-2 rounded hover:opacity-90`}>
           Remove
         </button>
       </div>
