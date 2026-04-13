@@ -1232,7 +1232,7 @@ const carryForward5SActions = async () => {
       }));
 
       const updatedWeekData = {
-        ...(currentWeekData || {}),
+        ...(currentWeekData || { weekId }),
         [`${weekId}-5s`]: {
           ...(currentWeekData?.[`${weekId}-5s`] || {}),
           actions: carried
@@ -1240,13 +1240,13 @@ const carryForward5SActions = async () => {
       };
       await ShiftHandoverAPI.saveHandover(weekId, updatedWeekData);
 
-      setHandoverData(prev => ({
-        ...prev,
-        [`${weekId}-5s`]: {
-          ...(prev?.[`${weekId}-5s`] || {}),
-          actions: carried
-        }
-      }));
+   setHandoverData(prev => ({
+  ...prev,
+  [`${weekId}-5s`]: {
+    ...(prev?.[`${weekId}-5s`] || {}),
+    actions: carried
+  }
+}));
 
     } catch (error) {
       console.error('Failed to carry forward 5S actions:', error);
