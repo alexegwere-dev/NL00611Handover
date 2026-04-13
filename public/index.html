@@ -2402,19 +2402,34 @@ const carryForward5SActions = async () => {
                               </button>
                               
                               <button
-                onClick={() => {
-                  setHandoverData(prev => {
-                    const nd = { ...prev };
-                    if (!nd[`${weekId}-5s`]) return nd;
-                    const actions = nd[`${weekId}-5s`].actions || [];
-                    if (actions.length > 1) {
-                      nd[`${weekId}-5s`].actions = actions.slice(0, -1);
-                    }
-                    return nd;
-                  });
+                onClick={(e) => {
+                  const btn = e.currentTarget;
+                  if (btn.dataset.confirming === 'true') {
+                    setHandoverData(prev => {
+                      const nd = { ...prev };
+                      if (!nd[`${weekId}-5s`]) return nd;
+                      const actions = nd[`${weekId}-5s`].actions || [];
+                      if (actions.length > 1) {
+                        nd[`${weekId}-5s`].actions = actions.slice(0, -1);
+                      }
+                      return nd;
+                    });
+                    btn.dataset.confirming = 'false';
+                    btn.textContent = 'Remove 5S Action';
+                    btn.className = 'px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded hover:bg-red-700';
+                  } else {
+                    btn.dataset.confirming = 'true';
+                    btn.textContent = 'Click again to confirm';
+                    btn.className = 'px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded hover:bg-orange-600';
+                    setTimeout(() => {
+                      btn.dataset.confirming = 'false';
+                      btn.textContent = 'Remove 5S Action';
+                      btn.className = 'px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded hover:bg-red-700';
+                    }, 3000);
+                  }
                 }}
                 className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded hover:bg-red-700">
-               Remove 5S Action
+                Remove 5S Action
               </button>
                             </div>
                           </div>
