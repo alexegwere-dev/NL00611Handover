@@ -2009,6 +2009,7 @@ const carryForward5SActions = async () => {
                     const weekId = `${currentYear}-CW${currentWeek + 1}`;
                     const totalItems = fiveS_categories.reduce((sum, c) => sum + c.items.length, 0);
                     const maxScore = totalItems * 4;
+                    const [confirm5sDelete, setConfirm5sDelete] = React.useState(false);
 
                     return (
                       <div>
@@ -2399,23 +2400,35 @@ const carryForward5SActions = async () => {
                                 style={{backgroundColor: '#008080'}}>
                                 Add 5S Action
                               </button>
-                              <button
-                onClick={() => {
-                  if (confirm('Are you sure you want to remove the last 5S action? This cannot be undone.')) {
-                    setHandoverData(prev => {
-                      const nd = { ...prev };
-                      if (!nd[`${weekId}-5s`]) return nd;
-                      const actions = nd[`${weekId}-5s`].actions || [];
-                      if (actions.length > 1) {
-                        nd[`${weekId}-5s`].actions = actions.slice(0, -1);
-                      }
-                      return nd;
-                    });
-                  }
-                }}
-                className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded hover:bg-red-700">
-               Remove 5S Action
-              </button>
+                              {!confirm5sDelete ? (
+                <button onClick={() => setConfirm5sDelete(true)}
+                  className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded hover:bg-red-700">
+                  Remove 5S Action
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-300 rounded">
+                  <span className="text-xs text-red-700 font-medium">Are you sure? This cannot be undone.</span>
+                  <button className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 font-semibold"
+                    onClick={() => {
+                      setHandoverData(prev => {
+                        const nd = { ...prev };
+                        if (!nd[`${weekId}-5s`]) return nd;
+                        const actions = nd[`${weekId}-5s`].actions || [];
+                        if (actions.length > 1) {
+                          nd[`${weekId}-5s`].actions = actions.slice(0, -1);
+                        }
+                        return nd;
+                      });
+                      setConfirm5sDelete(false);
+                    }}>
+                    Yes, remove
+                  </button>
+                  <button className="px-3 py-1 bg-gray-400 text-white text-xs rounded hover:bg-gray-500 font-semibold"
+                    onClick={() => setConfirm5sDelete(false)}>
+                    Cancel
+                  </button>
+                </div>
+              )}
                             </div>
                           </div>
                         </div>
