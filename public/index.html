@@ -1162,7 +1162,7 @@ const ShiftHandoverSystem = ({ user, onLogout, onUserManagement }) => {
     { area: "H&S", processes: ["PPE Worn by all","Accidents, Incidents and near misses put on to safety portal"] }
   ];
 
-  const loadHandoverData = async () => {
+const loadHandoverData = async () => {
     const currentScroll = window.pageYOffset;
     setLoading(true);
     try {
@@ -1187,59 +1187,11 @@ const ShiftHandoverSystem = ({ user, onLogout, onUserManagement }) => {
             }
           });
         });
-
         setHandoverData(initialData);
-    }
-
-    // ---- Carry forward incomplete 5S actions from previous week ----
-    try {
-      const prevWeekId = currentWeek === 0
-        ? `${currentYear - 1}-CW52`
-        : `${currentYear}-CW${currentWeek}`;
-
-      const prevData = await ShiftHandoverAPI.getHandover(`${prevWeekId}-5s`);
-      const currentData = await ShiftHandoverAPI.getHandover(`${weekId}-5s`);
-
-      if (prevData?.actions) {
-        const incompleteActions = prevData.actions.filter(a =>
-          a.status !== 'COMPLETED' && (a.issue || a.requiredAction)
-        );
-
-        if (incompleteActions.length > 0) {
-          // Only carry forward if current week has no actions yet
-          const currentActions = currentData?.actions || [];
-          const hasRealActions = currentActions.some(a => a.issue || a.requiredAction);
-
-          if (!hasRealActions) {
-            const carried = incompleteActions.map(a => ({
-              ...a,
-              id: Date.now() + Math.random(),
-              dateRaised: a.dateRaised || '',
-              dateCompleted: '',
-            }));
-
-            const updated5s = { ...(currentData || {}), actions: carried };
-            await ShiftHandoverAPI.saveHandover(`${weekId}-5s`, updated5s);
-
-            setHandoverData(prev => ({
-              ...prev,
-              [`${weekId}-5s`]: updated5s
-            }));
-          }
-        }
       }
-    } catch (e) {
-      console.error('Failed to carry forward 5S actions:', e);
-    }
-
-  } catch (error) {
-    console.error('Failed to load handover data:', error);
-  } finally {
-    setTimeout(() => {
-      setLoading(false);
-    }, 100);
-  }
-};
+    } catch (error) { console.error('Failed to load handover data:', error); }
+    finally { setTimeout(() => setLoading(false), 100); }
+  };
 
   const loadWeeklyActions = async () => {
     try {
@@ -1250,34 +1202,52 @@ const ShiftHandoverSystem = ({ user, onLogout, onUserManagement }) => {
     } catch (error) { console.error('Failed to load weekly actions:', error); }
   };
 
-  const carryForward5SActions = async () => {
+const carryForward5SActions = async () => {
     try {
       const weekId = `${currentYear}-CW${currentWeek + 1}`;
       const prevWeekId = currentWeek === 0
         ? `${currentYear - 1}-CW52`
         : `${currentYear}-CW${currentWeek}`;
-      const current5s = await ShiftHandoverAPI.getHandover(`${weekId}-5s`);
-      const hasExistingActions = current5s?.actions?.some(a => a.issue || a.requiredAction);
+
+      // 5S data lives inside the main handover object, not as a separate key
+      const currentWeekData = await ShiftHandoverAPI.getHandover(weekId);
+      const current5sActions = currentWeekData?.[`${weekId}-5s`]?.actions;
+      const hasExistingActions = current5sActions?.some(a => a.issue || a.requiredAction);
       if (hasExistingActions) return;
-      const prev5s = await ShiftHandoverAPI.getHandover(`${prevWeekId}-5s`);
-      if (!prev5s?.actions) return;
-      const incompleteActions = prev5s.actions.filter(a =>
-        (a.issue || a.requiredAction) &&
-        a.status !== 'COMPLETED'
+
+      const prevWeekData = await ShiftHandoverAPI.getHandover(prevWeekId);
+      const prev5sActions = prevWeekData?.[`${prevWeekId}-5s`]?.actions;
+      if (!prev5sActions || prev5sActions.length === 0) return;
+
+      const incompleteActions = prev5sActions.filter(a =>
+        (a.issue || a.requiredAction) && a.status !== 'COMPLETED'
       );
       if (incompleteActions.length === 0) return;
+
       const carried = incompleteActions.map(a => ({
         ...a,
         id: Date.now() + Math.random(),
         dateCompleted: '',
         status: a.status || 'OPEN'
       }));
-      const new5s = { ...(current5s || {}), actions: carried };
-      await ShiftHandoverAPI.saveHandover(`${weekId}-5s`, new5s);
+
+      const updatedWeekData = {
+        ...(currentWeekData || {}),
+        [`${weekId}-5s`]: {
+          ...(currentWeekData?.[`${weekId}-5s`] || {}),
+          actions: carried
+        }
+      };
+      await ShiftHandoverAPI.saveHandover(weekId, updatedWeekData);
+
       setHandoverData(prev => ({
         ...prev,
-        [`${weekId}-5s`]: new5s
+        [`${weekId}-5s`]: {
+          ...(prev?.[`${weekId}-5s`] || {}),
+          actions: carried
+        }
       }));
+
     } catch (error) {
       console.error('Failed to carry forward 5S actions:', error);
     }
