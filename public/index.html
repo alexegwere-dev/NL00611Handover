@@ -193,7 +193,7 @@ const LoginPage = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -208,7 +208,6 @@ const handleSubmit = async (e) => {
       setLoading(false);
     }
   };
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-800 via-teal-800 to-teal-900 flex items-center justify-center p-4">
@@ -2174,13 +2173,13 @@ const ShiftHandoverSystem = ({ user, onLogout, onUserManagement }) => {
                             <table className="w-full text-xs border-collapse">
                               <thead>
                                 <tr style={{backgroundColor: '#d1eee9'}}>
-                                  <th className="border border-teal-700 p-2 text-left font-bold" style={{width: '5%'}}>#</th>
-                                  <th className="border border-teal-700 p-2 text-left font-bold" style={{width: '20%'}}>Issue</th>
-                                  <th className="border border-teal-700 p-2 text-left font-bold" style={{width: '25%'}}>Required Action</th>
-                                  <th className="border border-teal-700 p-2 text-center font-bold" style={{width: '10%'}}>Date Raised</th>
-                                  <th className="border border-teal-700 p-2 text-center font-bold" style={{width: '10%'}}>Date Completed</th>
-                                  <th className="border border-teal-700 p-2 text-left font-bold" style={{width: '20%'}}>Comments</th>
-                                  <th className="border border-teal-700 p-2 text-center font-bold" style={{width: '10%'}}>Status</th>
+                                  <th className="border border-teal-700 p-2 text-center font-bold" style={{width: '5%'}}>#</th>
+<th className="border border-teal-700 p-2 text-center font-bold" style={{width: '20%'}}>Issue</th>
+<th className="border border-teal-700 p-2 text-center font-bold" style={{width: '25%'}}>Required Action</th>
+<th className="border border-teal-700 p-2 text-center font-bold" style={{width: '10%'}}>Date Raised</th>
+<th className="border border-teal-700 p-2 text-center font-bold" style={{width: '10%'}}>Date Completed</th>
+<th className="border border-teal-700 p-2 text-center font-bold" style={{width: '20%'}}>Owner</th>
+<th className="border border-teal-700 p-2 text-center font-bold" style={{width: '10%'}}>Status</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -2261,26 +2260,36 @@ const ShiftHandoverSystem = ({ user, onLogout, onUserManagement }) => {
                                         className="w-full text-xs border-0 focus:outline-none bg-transparent"
                                       />
                                     </td>
-                                    <td className="border border-gray-300 p-1">
-                                      <textarea
-                                        value={action.comments || ''}
-                                        onChange={(e) => {
-                                          const v = e.target.value;
-                                          setHandoverData(prev => {
-                                            const nd = { ...prev };
-                                            if (!nd[`${weekId}-5s`]) nd[`${weekId}-5s`] = {};
-                                            const actions = [...(nd[`${weekId}-5s`].actions || [{ id: 1 }])];
-                                            actions[idx] = { ...actions[idx], comments: v };
-                                            nd[`${weekId}-5s`].actions = actions;
-                                            return nd;
-                                          });
-                                        }}
-                                        className="w-full text-xs border-0 focus:outline-none resize-none bg-transparent"
-                                        rows="2"
-                                        style={{fontFamily: 'Aptos, sans-serif', fontWeight: '600', color: '#1f4e3d'}}
-                                        placeholder="Comments..."
-                                      />
-                                    </td>
+                                    <td className="border border-gray-300 p-1 text-center">
+  <select
+    value={action.comments || ''}
+    onChange={(e) => {
+      const v = e.target.value;
+      setHandoverData(prev => {
+        const nd = { ...prev };
+        if (!nd[`${weekId}-5s`]) nd[`${weekId}-5s`] = {};
+        const actions = [...(nd[`${weekId}-5s`].actions || [{ id: 1 }])];
+        actions[idx] = { ...actions[idx], comments: v };
+        nd[`${weekId}-5s`].actions = actions;
+        return nd;
+      });
+    }}
+    className={`w-full text-xs border-0 focus:outline-none font-bold text-center rounded p-1 ${
+      action.comments === 'TEAM RED' ? 'bg-red-400 text-white' :
+      action.comments === 'TEAM BLUE' ? 'bg-blue-400 text-white' :
+      action.comments === 'TEAM GREEN' ? 'bg-green-500 text-white' :
+      action.comments === 'TEAM ORANGE' ? 'bg-orange-400 text-white' :
+      action.comments === 'TEAM YELLOW' ? 'bg-yellow-300 text-gray-800' :
+      'bg-white text-gray-400'
+    }`}>
+    <option value="">Select Team</option>
+    <option value="TEAM RED">TEAM RED</option>
+    <option value="TEAM BLUE">TEAM BLUE</option>
+    <option value="TEAM GREEN">TEAM GREEN</option>
+    <option value="TEAM ORANGE">TEAM ORANGE</option>
+    <option value="TEAM YELLOW">TEAM YELLOW</option>
+  </select>
+</td>
                                     <td className="border border-gray-300 p-1 text-center">
                                       <select
                                         value={action.status || 'OPEN'}
