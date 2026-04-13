@@ -1186,11 +1186,59 @@ const ShiftHandoverSystem = ({ user, onLogout, onUserManagement }) => {
             }
           });
         });
+
         setHandoverData(initialData);
+    }
+
+    // ---- Carry forward incomplete 5S actions from previous week ----
+    try {
+      const prevWeekId = currentWeek === 0
+        ? `${currentYear - 1}-CW52`
+        : `${currentYear}-CW${currentWeek}`;
+
+      const prevData = await ShiftHandoverAPI.getHandover(`${prevWeekId}-5s`);
+      const currentData = await ShiftHandoverAPI.getHandover(`${weekId}-5s`);
+
+      if (prevData?.actions) {
+        const incompleteActions = prevData.actions.filter(a =>
+          a.status !== 'COMPLETED' && (a.issue || a.requiredAction)
+        );
+
+        if (incompleteActions.length > 0) {
+          // Only carry forward if current week has no actions yet
+          const currentActions = currentData?.actions || [];
+          const hasRealActions = currentActions.some(a => a.issue || a.requiredAction);
+
+          if (!hasRealActions) {
+            const carried = incompleteActions.map(a => ({
+              ...a,
+              id: Date.now() + Math.random(),
+              dateRaised: a.dateRaised || '',
+              dateCompleted: '',
+            }));
+
+            const updated5s = { ...(currentData || {}), actions: carried };
+            await ShiftHandoverAPI.saveHandover(`${weekId}-5s`, updated5s);
+
+            setHandoverData(prev => ({
+              ...prev,
+              [`${weekId}-5s`]: updated5s
+            }));
+          }
+        }
       }
-    } catch (error) { console.error('Failed to load handover data:', error); }
-    finally { setTimeout(() => setLoading(false), 100); }
-  };
+    } catch (e) {
+      console.error('Failed to carry forward 5S actions:', e);
+    }
+
+  } catch (error) {
+    console.error('Failed to load handover data:', error);
+  } finally {
+    setTimeout(() => {
+      setLoading(false);
+    }, 100);
+  }
+};
 
   const loadWeeklyActions = async () => {
     try {
