@@ -2280,14 +2280,20 @@ const ShiftHandoverSystem = ({ user, onLogout, onUserManagement }) => {
       action.comments === 'TEAM GREEN' ? 'bg-green-500 text-white' :
       action.comments === 'TEAM ORANGE' ? 'bg-orange-400 text-white' :
       action.comments === 'TEAM YELLOW' ? 'bg-yellow-300 text-gray-800' :
+      action.comments === 'SITE MANAGER' ? 'bg-purple-600 text-white' :
+      action.comments === 'SUPERVISOR' ? 'bg-indigo-500 text-white' :
+      action.comments === 'SPARE PARTS ADMIN' ? 'bg-teal-600 text-white' :
       'bg-white text-gray-400'
     }`}>
-    <option value="">Select Team</option>
+    <option value="">Select Owner</option>
     <option value="TEAM RED">TEAM RED</option>
     <option value="TEAM BLUE">TEAM BLUE</option>
     <option value="TEAM GREEN">TEAM GREEN</option>
     <option value="TEAM ORANGE">TEAM ORANGE</option>
     <option value="TEAM YELLOW">TEAM YELLOW</option>
+    <option value="SITE MANAGER">SITE MANAGER</option>
+    <option value="SUPERVISOR">SUPERVISOR</option>
+    <option value="SPARE PARTS ADMIN">SPARE PARTS ADMIN</option>
   </select>
 </td>
                                     <td className="border border-gray-300 p-1 text-center">
