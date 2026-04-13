@@ -2525,12 +2525,76 @@ const OnlineShiftHandoverSystem = () => {
     </>
   );
 };
+// ============================================================
+// ERROR BOUNDARY
+// ============================================================
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, info) {
+    console.error('App error:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #0d4d4d 0%, #0d4d4d 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.1)',
+            borderRadius: '12px',
+            padding: '40px',
+            textAlign: 'center',
+            maxWidth: '400px'
+          }}>
+            <div style={{fontSize: '48px', marginBottom: '16px'}}>⚠️</div>
+            <h2 style={{color: 'white', fontSize: '22px', fontWeight: 'bold', marginBottom: '12px'}}>
+              Something went wrong
+            </h2>
+            <p style={{color: 'rgba(255,255,255,0.8)', fontSize: '14px', marginBottom: '24px'}}>
+              An unexpected error occurred. Please refresh the page. If the problem persists, contact your administrator.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                background: '#008080',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}>
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 window.AppRoot = OnlineShiftHandoverSystem;
 const root = ReactDOM.createRoot(document.getElementById('root'));
 const App = window.AppRoot || OnlineShiftHandoverSystem || (()=>React.createElement('div', null, 'App not found'));
-root.render(React.createElement(App));
-  </script>
+root.render(
+  React.createElement(ErrorBoundary, null,
+    React.createElement(App)
+  )
+);
+</script>
 
   <script>
   document.addEventListener('focusin', function(e) {
