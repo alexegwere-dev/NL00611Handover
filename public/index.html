@@ -1734,10 +1734,103 @@ const carryForward5SActions = async () => {
       </div>
     </div>
   );
+const print5SReport = () => {
+    const weekId = `${currentYear}-CW${currentWeek + 1}`;
+    const fiveS_categories = [
+      { name: 'SORT', items: ['Only the required paperwork is present at the workstations. Outdated or unnecessary posters, memos, reports, etc. are properly stored or disposed of.','Tripping hazards, such as electrical cables, etc., are identified or removed from standing/walking areas.'] },
+      { name: 'STRAIGHTEN', items: ['Locations for containers, boxes, WIP, materials, etc., are clearly defined by painted lines and properly labeled.','Tools have a designated storage location that is properly labeled and tools can easily be identified if absent.','Paperwork is properly labeled and has a clearly defined and labeled location.','Furniture is clearly labeled and placed in a properly identified location.','The workplace layout is posted, up-to-date, and all work areas requiring personal protective equipment are clearly labeled.','Fire and other emergency equipment is prominently displayed and unobstructed.','Walkways, vehicle paths, and exits are clearly identified and unobstructed.'] },
+      { name: 'SHINE', items: ['Work surfaces (machines, workbenches, fixtures, and other equipment) are clean and painted.','Walls, partitions, railings, etc. are painted and kept clean.','All cleaning equipment is neatly stored and is readily available when needed.','All personal protective equipment is maintained in sanitary/reliable condition and properly stored in an easily accessible/labeled location when not in use.','Equipment safety concerns are clearly identified. Safety guards are painted, in good working condition and provide adequate protection.'] },
+      { name: 'STANDARDIZE', items: ['Tools, equipment, paperwork, furniture, etc. are stored neatly in designated areas and are returned immediately after each use.','Documents are labeled clearly as to contents and responsibility.','Equipment maintenance records are visible and clearly state previous and future maintenance activities.','Product waste (e.g. paper, containers, liquids, wrappers, etc.) is consistently and often cleaned up and removed from the workplace.','Areas for improvement identified during the previous audit have been completed.','The work environment satisfies the requirements of the work being performed. Lighting, air quality, temperature, etc.'] },
+      { name: 'SUSTAIN', items: ['A member of management has participated in a 5S activity such as an audit or other activity within the past 3 audit periods.','Recognition is given to those who get involved in 5S activities.','Time and resources are allocated to 5S activities (e.g. designated daily/weekly clean-up time, etc.)','The team took the initiative to make improvements to the workplace that were not identified during the last 5S audit.'] }
+    ];
+    const days = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+    const data5s = handoverData[`${weekId}-5s`] || {};
+    const actions = data5s.actions || [];
+    const totalItems = fiveS_categories.reduce((sum, c) => sum + c.items.length, 0);
+    const maxScore = totalItems * 4;
+    let auditRows = '';
+    fiveS_categories.forEach((cat, catIdx) => {
+      auditRows += `<tr><td colspan="9" style="background:#008080;color:white;font-weight:bold;padding:6px 8px;font-size:11px;">${cat.name}</td></tr>`;
+      cat.items.forEach((item, itemIdx) => {
+        const key = `5s-${catIdx}-${itemIdx}`;
+        const scores = data5s[key] || Array(7).fill('');
+        const validScores = scores.filter(s => s !== '' && s !== null && s !== undefined);
+        const avg = validScores.length > 0 ? (validScores.reduce((sum, s) => sum + parseFloat(s || 0), 0) / validScores.length).toFixed(1) : '';
+        const scoreCells = scores.map(s => {
+          const val = parseFloat(s);
+          const bg = s === '' ? '' : val === 0 ? '#e5e7eb' : val === 1 ? '#fef9c3' : val === 2 ? '#dbeafe' : val === 3 ? '#dcfce7' : '#bbf7d0';
+          return `<td style="text-align:center;padding:4px;background:${bg};border:1px solid #d1d5db;font-size:11px;">${s}</td>`;
+        }).join('');
+        const avgBg = avg === '' ? '' : parseFloat(avg) >= 3 ? '#bbf7d0' : parseFloat(avg) >= 2 ? '#dbeafe' : parseFloat(avg) >= 1 ? '#fef9c3' : '#e5e7eb';
+        auditRows += `<tr><td style="padding:5px 8px;border:1px solid #d1d5db;font-size:10px;">${item}</td>${scoreCells}<td style="text-align:center;padding:4px;background:${avgBg};border:1px solid #d1d5db;font-weight:bold;font-size:11px;">${avg}</td></tr>`;
+      });
+    });
+    let totalCells = '', totalPcts = '', initialsCells = '';
+    [0,1,2,3,4,5,6].forEach(dayIdx => {
+      let total = 0, count = 0;
+      fiveS_categories.forEach((cat, catIdx) => {
+        cat.items.forEach((_, itemIdx) => {
+          const val = data5s[`5s-${catIdx}-${itemIdx}`]?.[dayIdx];
+          if (val !== '' && val !== undefined && val !== null) { total += parseFloat(val || 0); count++; }
+        });
+      });
+      const pct = count > 0 ? ((total / maxScore) * 100).toFixed(1) : '';
+      const pctBg = pct === '' ? '' : parseFloat(pct) >= 75 ? '#bbf7d0' : parseFloat(pct) >= 50 ? '#dbeafe' : parseFloat(pct) >= 25 ? '#fef9c3' : '#fecaca';
+      totalCells += `<td style="text-align:center;padding:4px;border:1px solid #d1d5db;font-weight:bold;font-size:11px;">${count > 0 ? total : ''}</td>`;
+      totalPcts += `<td style="text-align:center;padding:4px;border:1px solid #d1d5db;font-weight:bold;font-size:11px;background:${pctBg}">${pct ? pct + '%' : ''}</td>`;
+      initialsCells += `<td style="text-align:center;padding:4px;border:1px solid #d1d5db;font-size:11px;">${data5s[`initials-${dayIdx}`] || ''}</td>`;
+    });
+    let actionRows = '';
+    actions.filter(a => a.issue || a.requiredAction).forEach((action, idx) => {
+      const statusBg = action.status === 'COMPLETED' ? '#bbf7d0' : action.status === 'IN PROGRESS' ? '#fef9c3' : action.status === 'ON HOLD' ? '#fecaca' : '#fed7aa';
+      actionRows += `<tr style="background:${idx % 2 === 0 ? 'white' : '#f9fafb'}"><td style="padding:5px;border:1px solid #d1d5db;text-align:center;font-size:10px;">${idx + 1}</td><td style="padding:5px;border:1px solid #d1d5db;font-size:10px;">${action.issue || ''}</td><td style="padding:5px;border:1px solid #d1d5db;font-size:10px;">${action.requiredAction || ''}</td><td style="padding:5px;border:1px solid #d1d5db;text-align:center;font-size:10px;">${action.dateRaised || ''}</td><td style="padding:5px;border:1px solid #d1d5db;text-align:center;font-size:10px;">${action.dateCompleted || ''}</td><td style="padding:5px;border:1px solid #d1d5db;text-align:center;font-size:10px;">${action.comments || ''}</td><td style="padding:5px;border:1px solid #d1d5db;text-align:center;font-size:10px;background:${statusBg};font-weight:bold;">${action.status || 'OPEN'}</td></tr>`;
+    });
+    const html = `<!DOCTYPE html><html><head><title>NL00611 - 5S Audit CW${currentWeek + 1} ${currentYear}</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; color: #111; }
+      h1 { color: #008080; font-size: 18px; margin-bottom: 4px; }
+      h2 { color: #008080; font-size: 14px; margin: 20px 0 8px; border-bottom: 2px solid #008080; padding-bottom: 4px; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+      th { background: #008080; color: white; padding: 6px 8px; font-size: 11px; text-align: center; border: 1px solid #006666; }
+      td { vertical-align: middle; }
+      @media print { body { margin: 10px; } .no-print { display: none; } }
+    </style></head>
+    <body>
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #008080;padding-bottom:10px;margin-bottom:16px;">
+        <div>
+          <h1>NL00611 - WEEKLY 5S AUDIT</h1>
+          <p style="margin:0;font-size:12px;color:#555;">Calendar Week ${currentWeek + 1} of ${currentYear} &nbsp;|&nbsp; ${weekDates.start.toLocaleDateString()} - ${weekDates.end.toLocaleDateString()}</p>
+        </div>
+        <button class="no-print" onclick="window.print()" style="background:#008080;color:white;border:none;padding:10px 20px;border-radius:6px;font-size:13px;font-weight:bold;cursor:pointer;">🖨 Print / Save as PDF</button>
+      </div>
+      <h2>5S AUDIT SCORES</h2>
+      <table>
+        <thead><tr><th style="width:38%;text-align:left;">Criteria</th>${days.map(d => `<th style="width:7%;">${d}</th>`).join('')}<th style="width:7%;">AVG</th></tr></thead>
+        <tbody>
+          ${auditRows}
+          <tr style="background:#d1eee9;"><td style="padding:5px 8px;border:1px solid #d1d5db;font-weight:bold;font-size:11px;">Daily Total Score</td>${totalCells}<td style="border:1px solid #d1d5db;"></td></tr>
+          <tr style="background:#b2d8d8;"><td style="padding:5px 8px;border:1px solid #d1d5db;font-weight:bold;font-size:11px;">Daily Score %</td>${totalPcts}<td style="border:1px solid #d1d5db;"></td></tr>
+          <tr><td style="padding:5px 8px;border:1px solid #d1d5db;font-weight:bold;font-size:11px;">Completed By (Initials)</td>${initialsCells}<td style="border:1px solid #d1d5db;"></td></tr>
+        </tbody>
+      </table>
+      <h2>5S ACTION LOG</h2>
+      <table>
+        <thead><tr><th style="width:4%;">#</th><th style="width:20%;text-align:left;">Issue</th><th style="width:25%;text-align:left;">Required Action</th><th style="width:10%;">Date Raised</th><th style="width:10%;">Date Completed</th><th style="width:18%;">Owner</th><th style="width:13%;">Status</th></tr></thead>
+        <tbody>${actionRows || '<tr><td colspan="7" style="text-align:center;padding:10px;color:#888;font-size:11px;">No actions recorded</td></tr>'}</tbody>
+      </table>
+    </body></html>`;
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
       <AppHeader user={user} onLogout={onLogout} onUserManagement={onUserManagement} />
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <AppHeader user={user} onLogout={onLogout} onUserManagement={onUserManagement} />
+      
       <div className="p-4">
         <div className="max-w-7xl mx-auto">
           <div className="rounded-lg shadow-lg mb-6" style={{background: 'linear-gradient(135deg, #008080 0%, #008080 100%)'}}>
@@ -2041,8 +2134,12 @@ const carryForward5SActions = async () => {
               </div>
             ) : currentDay === 9 ? (
               <div className="bg-white rounded-lg shadow-lg">
-                <div className="text-center py-4 px-6 font-bold text-xl text-white rounded-t-lg" style={{backgroundColor: '#008080'}}>
-                  NL00611 - WEEKLY 5S AUDIT - CW{currentWeek + 1}
+                <div className="flex justify-between items-center py-4 px-6 rounded-t-lg" style={{backgroundColor: '#008080'}}>
+                  <span className="font-bold text-xl text-white">NL00611 - WEEKLY 5S AUDIT - CW{currentWeek + 1}</span>
+                  <button onClick={print5SReport}
+                    className="flex items-center gap-2 px-4 py-2 bg-white bg-opacity-20 text-white text-sm font-semibold rounded-lg hover:bg-opacity-30 transition-all">
+                    Print / Export PDF
+                  </button>
                 </div>
                 <div className="p-6">
                   {(() => {
