@@ -1018,7 +1018,7 @@ const ShiftHandoverSystem = ({ user, onLogout, onUserManagement }) => {
   const [loading, setLoading] = useState(false);
   const [weeklyPPM, setWeeklyPPM] = useState('');
   const [showPPMSplit, setShowPPMSplit] = useState(false);
-  const [autoSaveStatus, setAutoSaveStatus] = useState('saved');
+  const [autoSaveStatus, setAutoSaveStatus] = useState('unsaved');
   const [lastSaved, setLastSaved] = useState(null);
   const [weeklyActions, setWeeklyActions] = useState({
     healthSafety: [{ id: 1 }],
@@ -1042,11 +1042,12 @@ const ShiftHandoverSystem = ({ user, onLogout, onUserManagement }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Mark as unsaved whenever data changes
   useEffect(() => {
-    const restoreScroll = () => { if (scrollPositionRef.current > 0) window.scrollTo(0, scrollPositionRef.current); };
-    const timer = setTimeout(restoreScroll, 0);
-    return () => clearTimeout(timer);
-  }, []);
+    if (Object.keys(handoverData).length > 0) {
+      setAutoSaveStatus('unsaved');
+    }
+  }, [handoverData, processConfirmation, weeklyActions]);
 
   // ---- TEAM ENGINEERS (display names only) ----
   const teamEngineers = {
@@ -1782,9 +1783,9 @@ const carryForward5SActions = async () => {
                     {loading ? 'Auto-Saving...' : 'Save Handover'}
                   </button>
                   <div className="flex items-center gap-2 bg-white bg-opacity-20 rounded-lg px-3 py-2 backdrop-blur-sm">
-                    <div className={`w-2 h-2 rounded-full ${autoSaveStatus === 'saved' ? 'bg-green-400' : autoSaveStatus === 'saving' ? 'bg-yellow-400 animate-pulse' : 'bg-red-400'}`}></div>
+                    <div className={`w-2 h-2 rounded-full ${autoSaveStatus === 'saved' ? 'bg-green-400' : autoSaveStatus === 'saving' ? 'bg-yellow-400 animate-pulse' : autoSaveStatus === 'unsaved' ? 'bg-orange-400' : 'bg-red-400'}`}></div>
                     <span className="text-white text-sm font-medium">
-                      {autoSaveStatus === 'saved' ? 'Auto-saved' : autoSaveStatus === 'saving' ? 'Saving...' : 'Save failed'}
+                      {autoSaveStatus === 'saved' ? 'Saved' : autoSaveStatus === 'saving' ? 'Saving...' : autoSaveStatus === 'unsaved' ? 'Unsaved changes' : 'Save failed'}
                     </span>
                     {lastSaved && autoSaveStatus === 'saved' && (
                       <span className="text-white text-xs opacity-75">{lastSaved.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
