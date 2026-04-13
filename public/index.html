@@ -1710,7 +1710,11 @@ const carryForward5SActions = async () => {
       </div>
       <div className="mt-4">
         <button className={`${cat.removeBg} text-white px-4 py-2 rounded hover:opacity-90`}
-          onClick={() => setWeeklyActions(prev => ({ ...prev, [categoryKey]: prev[categoryKey].filter(item => item.id !== action.id) }))}>
+          onClick={() => {
+            if (confirm('Are you sure you want to remove this action? This cannot be undone.')) {
+              setWeeklyActions(prev => ({ ...prev, [categoryKey]: prev[categoryKey].filter(item => item.id !== action.id) }));
+            }
+          }}>
           Remove
         </button>
       </div>
@@ -2396,20 +2400,22 @@ const carryForward5SActions = async () => {
                                 Add 5S Action
                               </button>
                               <button
-                                onClick={() => {
-                                  setHandoverData(prev => {
-                                    const nd = { ...prev };
-                                    if (!nd[`${weekId}-5s`]) return nd;
-                                    const actions = nd[`${weekId}-5s`].actions || [];
-                                    if (actions.length > 1) {
-                                      nd[`${weekId}-5s`].actions = actions.slice(0, -1);
-                                    }
-                                    return nd;
-                                  });
-                                }}
-                                className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded hover:bg-red-700">
-                               Remove 5S Action
-                              </button>
+                onClick={() => {
+                  if (confirm('Are you sure you want to remove the last 5S action? This cannot be undone.')) {
+                    setHandoverData(prev => {
+                      const nd = { ...prev };
+                      if (!nd[`${weekId}-5s`]) return nd;
+                      const actions = nd[`${weekId}-5s`].actions || [];
+                      if (actions.length > 1) {
+                        nd[`${weekId}-5s`].actions = actions.slice(0, -1);
+                      }
+                      return nd;
+                    });
+                  }
+                }}
+                className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded hover:bg-red-700">
+               Remove 5S Action
+              </button>
                             </div>
                           </div>
                         </div>
