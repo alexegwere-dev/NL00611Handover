@@ -82,7 +82,7 @@ const uuidToName = {
   '895275da-fb4b-4e40-ba60-0f93149a71e7': 'Saad, Manuel',
   '3b95c1fd-1f5a-4817-8104-7a9ed75626bd': 'Habibi, Roul',
   '4506e4c0-e099-4b40-9492-41eebbefa98c': 'Negro, Carlos',
-  'a3104640-5efb-4e71-b621-2676eff2fa83': 'Pinilla, Gabriel',
+  'a3104640-5efb-4e71-b621-2676eff2fa83': 'Dennie, Streifel',
   '681f4598-ea47-4e73-9d82-2df8130b059f': 'Lichnos, Dimitris',
   'a817bb94-c316-4c4f-b563-b73f9c8c82be': 'Karagiannis, Georgios',
   // BLUE
@@ -113,6 +113,7 @@ const uuidToName = {
   '0a6d9689-1868-4ebe-bbf6-028eb547bf51': 'Zielinski, Kornel',
   'ab7cef74-cbb0-407d-b4f2-97759819ee7f': 'Keuzenkamp, Michael',
   '3f4ec64c-5a24-4948-9c72-b097e10e3558': 'Moohialdin, Moohialdin',
+  'adcba93d-69c7-4cba-9cc0-d6488f48260a': 'Bahetiya, Yiliyaer',
 
 };
 
@@ -208,6 +209,7 @@ const LoginPage = ({ onLogin }) => {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-800 via-teal-800 to-teal-900 flex items-center justify-center p-4">
@@ -591,6 +593,7 @@ const DataImportSection = ({ handoverData, setHandoverData, currentWeek, current
 
       let processedRows = 0;
       let matchedRows = 0;
+      const assetBreakdowns = {};
 
       for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
@@ -605,7 +608,8 @@ const DataImportSection = ({ handoverData, setHandoverData, currentWeek, current
         const endTime = row[endTimeIndex] || '';
 
         // ---- UUID to name translation ----
-        const operator = uuidToName[rawOperator] || rawOperator;
+        if (!rawOperator || rawOperator.trim() === '') continue;
+        const operator = uuidToName[rawOperator] || 'External Support';
 
         // ---- Status check - accept both CLOSED and FINISHED ----
         const statusUpper = status.trim().toUpperCase();
@@ -615,13 +619,8 @@ const DataImportSection = ({ handoverData, setHandoverData, currentWeek, current
 
         if (!currentTeamEngineers.includes(operator)) continue;
 
-const isPPM = reason.toLowerCase() === 'ppm';
-        if (!isPPM && !startTime.includes('T') && !startTime.includes(' ')) continue;
-        if (!startTime.includes('T') && !startTime.includes(' ')) {
-          engineerStats[operator].completedPPM++;
-          matchedRows++;
-          continue;
-        }
+        if (!startTime.includes('T') && !startTime.includes(' ')) continue;
+
         // ---- Parse startDateTime: handles ISO "YYYY-MM-DDTHH:MM:SS" and Excel "DD/MM/YYYY HH:MM" ----
         let taskDateString, taskTime;
         if (startTime.includes('T')) {
@@ -631,10 +630,13 @@ const isPPM = reason.toLowerCase() === 'ppm';
           taskDateString = `${isoDay}/${isoMonth}/${isoYear}`;
           taskTime = isoTimePart.substring(0, 5);
         } else {
-          // Excel format DD/MM/YYYY HH:MM
+          // Excel format DD/MM/YYYY HH:MM or DD/MM/YYYY HH:MM:SS
           const spaceIndex = startTime.indexOf(' ');
           taskDateString = startTime.substring(0, spaceIndex).trim();
-          taskTime = startTime.substring(spaceIndex + 1).trim().substring(0, 5);
+          const timePart = startTime.substring(spaceIndex + 1).trim();
+          // Handle HH:MM:SS by taking only HH:MM
+          const timeParts = timePart.split(':');
+          taskTime = timeParts[0].padStart(2,'0') + ':' + timeParts[1].padStart(2,'0');
         }
 
         let dateMatches = false;
@@ -665,11 +667,11 @@ const isPPM = reason.toLowerCase() === 'ppm';
                 const [hrs, mins] = timePart.split(':');
                 return new Date(year, month - 1, day, hrs, mins);
               } else {
-                // Excel: "DD/MM/YYYY HH:MM"
+                // Excel: "DD/MM/YYYY HH:MM" or "DD/MM/YYYY HH:MM:SS"
                 const [datePart, timePart] = s.split(' ');
                 const [day, month, year] = datePart.split('/');
-                const [hrs, mins] = timePart.split(':');
-                return new Date(year, month - 1, day, hrs, mins);
+                const timeParts = timePart.split(':');
+                return new Date(year, month - 1, day, timeParts[0], timeParts[1]);
               }
             };
             const startDt = parseDateTime(startTime);
@@ -682,7 +684,13 @@ const isPPM = reason.toLowerCase() === 'ppm';
         matchedRows++;
 
         if (reason.toLowerCase().includes('ppm')) engineerStats[operator].completedPPM++;
-        if (reason.toLowerCase().includes('breakdown')) engineerStats[operator].breakdowns++;
+        if (reason.toLowerCase().includes('breakdown')) {
+          engineerStats[operator].breakdowns++;
+          const assetId = row[headers.findIndex(h => h === 'systemblockidentifier')] || '';
+          if (assetId.trim()) {
+            assetBreakdowns[assetId.trim()] = (assetBreakdowns[assetId.trim()] || 0) + 1;
+          }
+        }
         engineerStats[operator].totalHours += duration;
       }
 
@@ -691,8 +699,15 @@ const isPPM = reason.toLowerCase() === 'ppm';
         engineerStats[engineer].timeBookedPercentage = percentage;
       });
 
+      const topBreakdownAssets = Object.entries(assetBreakdowns)
+        .filter(([, count]) => count >= 2)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([asset, count]) => ({ asset, count, category: '' }));
+
       setParsedData({
         engineerStats,
+        topBreakdownAssets,
         summary: {
           totalPPM: Object.values(engineerStats).reduce((sum, stats) => sum + stats.completedPPM, 0),
           totalBreakdowns: Object.values(engineerStats).reduce((sum, stats) => sum + stats.breakdowns, 0),
@@ -741,6 +756,7 @@ const isPPM = reason.toLowerCase() === 'ppm';
 
       newData[targetDay][selectedShift].completedPPM = parsedData.summary.totalPPM.toString();
       newData[targetDay][selectedShift].totalBreakdowns = parsedData.summary.totalBreakdowns.toString();
+      newData[targetDay][selectedShift].topBreakdownAssets = parsedData.topBreakdownAssets || [];
       if (additionalInfo.trim()) newData[targetDay][selectedShift].additionalInfo = additionalInfo.trim();
       if (randomStockCheckData && randomStockCheckData.some(item => item.trim() !== '')) {
         newData[targetDay][selectedShift].randomStockCheck = [...randomStockCheckData];
@@ -842,9 +858,9 @@ const isPPM = reason.toLowerCase() === 'ppm';
               <label className="block text-sm font-medium text-gray-700 mb-1">Shift Type:</label>
               <select value={selectedShift} onChange={(e) => setSelectedShift(e.target.value)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="earlyShift">Early Shift (05:15 - 14:30)</option>
-                <option value="lateShift">Late Shift (13:15 - 22:30)</option>
-                <option value="nightShift">Night Shift (21:15 - 06:00)</option>
+                <option value="earlyShift">Early Shift (05:30 - 14:00)</option>
+                <option value="lateShift">Late Shift (13:30 - 22:00)</option>
+                <option value="nightShift">Night Shift (21:30 - 06:00)</option>
               </select>
             </div>
             <div>
@@ -1011,6 +1027,354 @@ const isPPM = reason.toLowerCase() === 'ppm';
   );
 };
 
+// ---- SHIFT SECTION (standalone - outside ShiftHandoverSystem) ----
+const ShiftSection = ({ shift, shiftName, data, day, setHandoverData, teamEngineers }) => {
+  if (!data) return null;
+  return (
+    <div className="border-2 mb-6 rounded-lg" style={{backgroundColor: '#008080', borderColor: '#008080'}}>
+      <div className="text-white text-center py-2 px-4 font-extrabold text-xl tracking-wide" style={{backgroundColor: '#008080'}}>
+        {shiftName.toUpperCase()} HANDOVER
+      </div>
+      <div className="bg-white p-4">
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-5">
+            {/* KPIs */}
+            <div className="mb-4">
+              <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>KPI's</div>
+              <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
+                {[
+                  { label: 'Planned PPM', field: 'plannedPPM' },
+                  { label: 'Completed PPM', field: 'completedPPM' },
+                  { label: 'Total breakdowns', field: 'totalBreakdowns' }
+                ].map(({ label, field }, idx) => (
+                  <div key={field} className={`grid grid-cols-2 text-xs ${idx > 0 ? 'border-t border-gray-400' : ''}`}>
+                    <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9'}}>{label}</div>
+                    <div className="p-1 bg-white">
+                      <input type="text" value={data[field] || ''}
+                        onChange={(e) => { const v = e.target.value; setHandoverData(prev => ({ ...prev, [day]: { ...prev[day], [shift]: { ...prev[day]?.[shift], [field]: v } } })); }}
+                        className={`w-full text-xs focus:outline-none p-0 ${
+                          field === 'completedPPM' && data.plannedPPM && data.completedPPM
+                            ? parseFloat(data.completedPPM) < parseFloat(data.plannedPPM) ? 'bg-red-300' : 'bg-green-300'
+                            : ''
+                        }`}
+                        style={{ border: 'none', background: field === 'completedPPM' && data.plannedPPM && data.completedPPM ? undefined : 'transparent', fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: '600', color: '#1f4e3d' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* H&S */}
+            <div className="mb-4">
+              <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>Health & Safety</div>
+              <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
+                {[{ label: 'Accidents', field: 'accidents' }, { label: 'Near Misses', field: 'nearMisses' }].map(({ label, field }, idx) => (
+                  <div key={field} className={`grid grid-cols-2 text-xs ${idx > 0 ? 'border-t border-gray-400' : ''}`}>
+                    <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9'}}>{label}</div>
+                    <div className="p-1 bg-white">
+                      <input type="text" value={data[field] || ''}
+                        onChange={(e) => { const v = e.target.value; setHandoverData(prev => ({ ...prev, [day]: { ...prev[day], [shift]: { ...prev[day]?.[shift], [field]: v } } })); }}
+                        className="w-full text-xs border-0 focus:outline-none p-0"
+                        style={{ fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: '600', color: '#1f4e3d' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Team */}
+            <div className="mb-4">
+              <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>Team Information</div>
+              <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
+                <div className="grid grid-cols-2 text-xs">
+                  <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9'}}>TEAM</div>
+                  <div className="p-1 font-bold text-center">
+                    <select value={data.teamColor || 'YELLOW'}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        const newEngineers = teamEngineers[v].map(name => ({ name, status: '', timeBooked: '', breakdown: '', completedPPM: '' }));
+                        setHandoverData(prev => ({ ...prev, [day]: { ...prev[day], [shift]: { ...prev[day]?.[shift], teamColor: v, engineers: newEngineers } } }));
+                      }}
+                      className="w-full text-xs border-0 focus:outline-none font-bold text-center"
+                      style={{ backgroundColor: data.teamColor === 'RED' ? '#ff9999' : data.teamColor === 'BLUE' ? '#6699ff' : data.teamColor === 'GREEN' ? '#99ff99' : data.teamColor === 'ORANGE' ? '#ffaa00' : '#ffff66' }}>
+                      <option value="YELLOW" style={{backgroundColor: '#ffff66', color: 'black'}}>YELLOW</option>
+                      <option value="BLUE" style={{backgroundColor: '#6699ff', color: 'black'}}>BLUE</option>
+                      <option value="GREEN" style={{backgroundColor: '#99ff99', color: 'black'}}>GREEN</option>
+                      <option value="RED" style={{backgroundColor: '#ff9999', color: 'black'}}>RED</option>
+                      <option value="ORANGE" style={{backgroundColor: '#ffaa00', color: 'black'}}>ORANGE</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Engineers */}
+            <div className="mb-4">
+              <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
+                <div className="grid grid-cols-12 text-xs font-bold text-white" style={{backgroundColor: '#008080'}}>
+                  <div className="col-span-3 p-1 border-r border-gray-400 text-center">Engineers</div>
+                  <div className="col-span-2 p-1 border-r border-gray-400 text-center">Status</div>
+                  <div className="col-span-2 p-1 border-r border-gray-400 text-center">Time Booked</div>
+                  <div className="col-span-3 p-1 border-r border-gray-400 text-center">Breakdown</div>
+                  <div className="col-span-2 p-1 text-center">PPM</div>
+                </div>
+                {data.engineers && data.engineers.map((engineer, index) => (
+                  <div key={`${shift}-${index}`} className="grid grid-cols-12 text-xs border-t border-gray-400">
+                    <div className="col-span-3 p-1 bg-white border-r border-gray-400 font-medium text-xs whitespace-nowrap overflow-hidden text-ellipsis">{engineer.name}</div>
+                    <div className="col-span-2 p-1 bg-white border-r border-gray-400">
+                      <select value={engineer.status || ''}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setHandoverData(prev => {
+                            const nd = { ...prev };
+                            if (!nd[day]) nd[day] = {};
+                            if (!nd[day][shift]) nd[day][shift] = {};
+                            if (!nd[day][shift].engineers) nd[day][shift].engineers = [];
+                            if (!nd[day][shift].engineers[index]) nd[day][shift].engineers[index] = {};
+                            nd[day][shift].engineers[index] = { ...nd[day][shift].engineers[index], status: v };
+                            return nd;
+                          });
+                        }}
+                        className={`w-full text-xs border-0 focus:outline-none p-1 font-medium rounded ${
+                          engineer.status === 'Onsite' ? 'bg-green-400 text-black' :
+                          engineer.status === 'Day off' ? 'bg-orange-400 text-black' :
+                          engineer.status === 'Sick Leave' ? 'bg-red-500 text-white' :
+                          engineer.status === 'Training' ? 'bg-green-700 text-white' :
+                          engineer.status === 'Shift Swap' ? 'bg-green-700 text-white' : 'bg-gray-100 text-black'}`}>
+                        <option value="" className="bg-white text-black">Select Status</option>
+                        <option value="Onsite" className="bg-green-400 text-black">Onsite</option>
+                        <option value="Day off" className="bg-orange-400 text-black">Day off</option>
+                        <option value="Sick Leave" className="bg-red-500 text-white">Sick Leave</option>
+                        <option value="Training" className="bg-green-700 text-white">Training</option>
+                        <option value="Shift Swap" className="bg-green-700 text-white">Shift Swap</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2 p-1 bg-white border-r border-gray-400 flex items-center">
+                      <div className={`w-full text-xs p-1 rounded text-center font-semibold ${
+                        engineer.timeBooked && engineer.timeBooked !== '0%' && engineer.timeBooked !== '' ?
+                          (parseInt(engineer.timeBooked) === 100 ? 'bg-green-100 text-green-800' :
+                           parseInt(engineer.timeBooked) >= 80 ? 'bg-yellow-100 text-yellow-800' :
+                           parseInt(engineer.timeBooked) > 0 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-600') :
+                          'bg-gray-100 text-gray-600'}`}>
+                        {engineer.timeBooked && engineer.timeBooked !== '' ? engineer.timeBooked : '0%'}
+                        {engineer.timeBooked && engineer.timeBooked !== '0%' && engineer.timeBooked !== '' && engineer.totalHours
+                          ? ` (${parseFloat(engineer.totalHours).toFixed(2)}h)`
+                          : engineer.timeBooked === '0%' || !engineer.timeBooked ? ' (0.00h)' : ''}
+                      </div>
+                    </div>
+                    <div className="col-span-3 p-1 bg-white border-r border-gray-400">
+                      <input type="text" value={engineer.breakdown || ''}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setHandoverData(prev => {
+                            const nd = { ...prev };
+                            if (!nd[day]) nd[day] = {};
+                            if (!nd[day][shift]) nd[day][shift] = {};
+                            if (!nd[day][shift].engineers) nd[day][shift].engineers = [];
+                            if (!nd[day][shift].engineers[index]) nd[day][shift].engineers[index] = {};
+                            nd[day][shift].engineers[index] = { ...nd[day][shift].engineers[index], breakdown: v };
+                            return nd;
+                          });
+                        }}
+                        className="w-full text-xs border-0 focus:outline-none p-1 bg-gray-50 rounded text-center"
+                        style={{ fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: '600', color: '#1f4e3d' }} />
+                    </div>
+                    <div className="col-span-2 p-1 bg-white">
+                      <input type="text" value={engineer.completedPPM || ''}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setHandoverData(prev => {
+                            const nd = { ...prev };
+                            if (!nd[day]) nd[day] = {};
+                            if (!nd[day][shift]) nd[day][shift] = {};
+                            if (!nd[day][shift].engineers) nd[day][shift].engineers = [];
+                            if (!nd[day][shift].engineers[index]) nd[day][shift].engineers[index] = {};
+                            nd[day][shift].engineers[index] = { ...nd[day][shift].engineers[index], completedPPM: v };
+                            return nd;
+                          });
+                        }}
+                        className="w-full text-xs border-0 focus:outline-none p-1 bg-gray-50 rounded text-center"
+                        style={{ fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: '600', color: '#1f4e3d' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Shift Overview */}
+          <div className="col-span-4">
+            <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>SHIFT OVERVIEW</div>
+            <div className="border-4 rounded-b-lg border-t-0 bg-white" style={{borderColor: '#008080', height: 'calc(100% - 56px)'}}>
+              <textarea value={data.additionalInfo || ''}
+                onChange={(e) => { const v = e.target.value; setHandoverData(prev => ({ ...prev, [day]: { ...prev[day], [shift]: { ...prev[day]?.[shift], additionalInfo: v } } })); }}
+                className="w-full h-full text-xs p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-left border-0"
+                style={{ minHeight: '500px', border: 'none', outline: 'none', fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: '600', color: '#1f4e3d' }} />
+            </div>
+          </div>
+
+          <div className="col-span-3">
+            {/* Random Stock Check */}
+            <div className="mb-4">
+              <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>RANDOM STOCK CHECK</div>
+              <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
+                <div className="grid grid-cols-4 gap-0" style={{backgroundColor: '#d1eee9'}}>
+                  <div className="border-r border-gray-400 p-1 text-xs font-bold text-center">LOCATION</div>
+                  <div className="border-r border-gray-400 p-1 text-xs font-bold text-center">CODE</div>
+                  <div className="border-r border-gray-400 p-1 text-xs font-bold text-center">CMMS QTY</div>
+                  <div className="p-1 text-xs font-bold text-center">LOC QTY</div>
+                </div>
+                {Array(5).fill(0).map((_, rowIndex) => (
+                  <div key={`stock-${rowIndex}`} className="grid grid-cols-4 gap-0">
+                    {[0,1,2,3].map(colOffset => (
+                      <div key={colOffset} className={`${colOffset < 3 ? 'border-r' : ''} border-b border-gray-300 h-8`}>
+                        <input
+                          type={colOffset >= 2 ? 'number' : 'text'}
+                          value={data.randomStockCheck?.[rowIndex * 4 + colOffset] || ''}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setHandoverData(prev => {
+                              const nd = { ...prev };
+                              if (!nd[day]) nd[day] = {};
+                              if (!nd[day][shift]) nd[day][shift] = {};
+                              if (!nd[day][shift].randomStockCheck) nd[day][shift].randomStockCheck = Array(20).fill('');
+                              const arr = [...nd[day][shift].randomStockCheck];
+                              arr[rowIndex * 4 + colOffset] = v;
+                              nd[day][shift].randomStockCheck = arr;
+                              return nd;
+                            });
+                          }}
+                          className={`w-full h-full text-xs focus:outline-none p-1 ${colOffset >= 2 ? 'text-center' : ''} ${
+                            colOffset === 3 && data.randomStockCheck?.[rowIndex*4+2] && data.randomStockCheck?.[rowIndex*4+3] &&
+                            parseFloat(data.randomStockCheck[rowIndex*4+3]) < parseFloat(data.randomStockCheck[rowIndex*4+2]) ? 'bg-red-300' : ''}`}
+                          style={{ border: 'none', background: colOffset < 2 ? 'transparent' : undefined, fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: '600', color: '#1f4e3d' }} />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Five Points Shift Checklist */}
+            <div className="mb-4">
+              <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>FIVE POINTS SHIFT CHECKLIST</div>
+              <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
+                {[
+                  'Shift report complete?',
+                  'All handover topics discussed?',
+                  'Shift handover checklist complete?',
+                  'Shift process confirmation complete?',
+                  'Knapp area returned to 5S picture standard?'
+                ].map((item, index) => {
+                  const isChecked = data.endOfShiftChecklist?.[index] || false;
+                  return (
+                    <div key={`checklist-${index}`}
+                      className={`flex items-start p-2 border-b border-gray-200 last:border-b-0 cursor-pointer transition-colors ${isChecked ? 'bg-green-100' : 'hover:bg-gray-50'}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const lockedScroll = window.pageYOffset;
+                        const nextVal = !isChecked;
+                        document.documentElement.style.scrollBehavior = 'auto';
+                        window.scrollTo(0, lockedScroll);
+                        setHandoverData(prev => {
+                          const nd = { ...prev };
+                          if (!nd[day]) nd[day] = {};
+                          if (!nd[day][shift]) nd[day][shift] = {};
+                          if (!nd[day][shift].endOfShiftChecklist) nd[day][shift].endOfShiftChecklist = Array(7).fill(false);
+                          const arr = [...nd[day][shift].endOfShiftChecklist];
+                          arr[index] = nextVal;
+                          nd[day][shift].endOfShiftChecklist = arr;
+                          return nd;
+                        });
+                        requestAnimationFrame(() => {
+                          requestAnimationFrame(() => {
+                            window.scrollTo(0, lockedScroll);
+                          });
+                        });
+                      }}>
+                      <input type="checkbox" id={`${shift}-checklist-${index}`}
+                        checked={isChecked}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          const lockedScroll = window.pageYOffset;
+                          const checked = e.target.checked;
+                          document.documentElement.style.scrollBehavior = 'auto';
+                          window.scrollTo(0, lockedScroll);
+                          setHandoverData(prev => {
+                            const nd = { ...prev };
+                            if (!nd[day]) nd[day] = {};
+                            if (!nd[day][shift]) nd[day][shift] = {};
+                            if (!nd[day][shift].endOfShiftChecklist) nd[day][shift].endOfShiftChecklist = Array(7).fill(false);
+                            const arr = [...nd[day][shift].endOfShiftChecklist];
+                            arr[index] = checked;
+                            nd[day][shift].endOfShiftChecklist = arr;
+                            return nd;
+                          });
+                          requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                              window.scrollTo(0, lockedScroll);
+                            });
+                          });
+                        }}
+                        className="mr-3 mt-1 w-4 h-4 flex-shrink-0"
+                        style={{ accentColor: '#008080' }}
+                        onClick={(e) => e.stopPropagation()} />
+                      <label htmlFor={`${shift}-checklist-${index}`}
+                        className={`text-xs cursor-pointer flex-1 leading-relaxed font-medium ${isChecked ? 'text-green-700' : 'text-gray-700'}`}
+                        style={{ fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: isChecked ? '600' : '500' }}
+                        onClick={(e) => e.stopPropagation()}>
+                        {index + 1}. {item}
+                      </label>
+                    </div>
+                  );
+                })}
+                <div className="p-3 bg-gray-50 border-t border-gray-200">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-medium text-gray-600">Progress: {data.endOfShiftChecklist?.filter(Boolean).length || 0}/5</span>
+                    <span className="text-xs font-medium text-gray-600">{Math.round(((data.endOfShiftChecklist?.filter(Boolean).length || 0) / 5) * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-300 rounded-full h-2">
+                    <div className="h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${((data.endOfShiftChecklist?.filter(Boolean).length || 0) / 5) * 100}%`,
+                        backgroundColor: ((data.endOfShiftChecklist?.filter(Boolean).length || 0) / 5) * 100 === 100 ? '#10b981' : '#008080'
+                      }} />
+                  </div>
+                </div>
+              </div>
+
+      </div>
+
+        {/* Top Breakdowns By Frequency */}
+              {(() => {
+                const topAssets = data.topBreakdownAssets && data.topBreakdownAssets.length > 0
+                  ? data.topBreakdownAssets
+                  : [{asset: '', count: ''}, {asset: '', count: ''}, {asset: '', count: ''}];
+                return (
+                <div className="mb-4">
+                  <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>TOP 3 BREAKDOWNS BY FREQUENCY</div>
+                  <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
+                    <div className="grid grid-cols-4 gap-0" style={{backgroundColor: '#d1eee9'}}>
+                      <div className="col-span-3 p-1 border-r border-gray-400 text-xs font-bold text-center">Assets</div>
+                      <div className="p-1 text-xs font-bold text-center">Frequency</div>
+                    </div>
+                    {topAssets.map((item, idx) => (
+                      <div key={idx} className={`grid grid-cols-4 gap-0 border-t border-gray-300 text-xs ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                        <div className="col-span-3 p-1 border-r border-gray-300 font-medium text-xs">{item.asset}</div>
+                        <div className="p-1 text-center font-bold" style={{color: item.count >= 10 ? '#dc2626' : item.count >= 5 ? '#d97706' : '#1f4e3d'}}>{item.count}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+        <div className="text-center py-4 px-4 font-bold text-sm text-white rounded-b-lg" style={{backgroundColor: '#008080'}}></div>
+      </div>
+    );
+  };
+
+
 // ============================================================
 // MAIN SHIFT HANDOVER SYSTEM
 // ============================================================
@@ -1054,13 +1418,25 @@ const ShiftHandoverSystem = ({ user, onLogout, onUserManagement }) => {
     }
   }, [handoverData, processConfirmation, weeklyActions]);
 
+// Warn user before closing tab with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (autoSaveStatus === 'unsaved') {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [autoSaveStatus]);
+
   // ---- TEAM ENGINEERS (display names only) ----
   const teamEngineers = {
-    YELLOW: ['Gomez, Brian', 'Saad, Manuel', 'Habibi, Roul', 'Negro, Carlos', 'Pinilla, Gabriel', 'Lichnos, Dimitris', 'Karagiannis, Georgios'],
-    BLUE: ['Daahir, Ismail', 'Lagares, Angel', 'Tzoganis, Christos', 'Kyminos, Kostas', 'Faillace, Sebastian', 'Radaios, Anastasios', 'Volioitis, Konstantinos'],
-    GREEN: ['Gomez, Juan', 'Pronk, Dylan', 'Egwere, Alex', 'Cuevas, Victor', 'Toporek, Patryk', 'Cimonetti, Jeferson', 'Papaioannou, Georgios'],
-    RED: ['Kubik, Ariel', 'New Engineer', 'Redan, Jermaine', 'Molendijk, Miguel', 'Guimaraes, Carlos', 'Bogazoglu, Osman', 'Alkabalan, Muhammad'],
-    ORANGE: ['Polac, Paul', 'Lachman, Henk', 'Wachowiak, Adam', 'Zielinski, Kornel', 'Keuzenkamp, Michael', 'Moohialdin, Moohialdin', 'Engineer 7'],
+YELLOW: ['Gomez, Brian', 'Saad, Manuel', 'Habibi, Roul', 'Negro, Carlos', 'Dennie, Streifel', 'Lichnos, Dimitris', 'Karagiannis, Georgios', 'Bahetiya, Yiliyaer', 'External Support'],
+BLUE: ['Tzoganis, Christos', 'Kyminos, Kostas', 'Faillace, Sebastian', 'Radaios, Anastasios', 'Volioitis, Konstantinos', 'Engineer 6', 'Engineer 7', 'Bahetiya, Yiliyaer', 'External Support'],
+GREEN: ['Gomez, Juan', 'Pronk, Dylan', 'Egwere, Alex', 'Cuevas, Victor', 'Toporek, Patryk', 'Cimonetti, Jeferson', 'Papaioannou, Georgios', 'Bahetiya, Yiliyaer', 'External Support'],
+RED: ['Kubik, Ariel', 'New Engineer', 'Redan, Jermaine', 'Molendijk, Miguel', 'Guimaraes, Carlos', 'Bogazoglu, Osman', 'Alkabalan, Muhammad', 'Bahetiya, Yiliyaer', 'External Support'],
+ORANGE: ['Polac, Paul', 'Lachman, Henk', 'Wachowiak, Adam', 'Zielinski, Kornel', 'Keuzenkamp, Michael', 'Moohialdin, Moohialdin', 'Engineer 7', 'Bahetiya, Yiliyaer', 'External Support'],
   };
 
   const getWeekDates = (year, weekNumber) => {
@@ -1308,328 +1684,7 @@ const carryForward5SActions = async () => {
   const days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
   const dayNames = ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'];
 
-  // ---- SHIFT SECTION ----
-  const ShiftSection = ({ shift, shiftName, data, day }) => {
-    if (!data) return null;
-    return (
-      <div className="border-2 mb-6 rounded-lg" style={{backgroundColor: '#008080', borderColor: '#008080'}}>
-        <div className="text-white text-center py-2 px-4 font-extrabold text-xl tracking-wide" style={{backgroundColor: '#008080'}}>
-          {shiftName.toUpperCase()} HANDOVER
-        </div>
-        <div className="bg-white p-4">
-          <div className="grid grid-cols-12 gap-4">
-            <div className="col-span-5">
-              {/* KPIs */}
-              <div className="mb-4">
-                <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>KPI's</div>
-                <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
-                  {[
-                    { label: 'Planned PPM', field: 'plannedPPM' },
-                    { label: 'Completed PPM', field: 'completedPPM' },
-                    { label: 'Total breakdowns', field: 'totalBreakdowns' }
-                  ].map(({ label, field }, idx) => (
-                    <div key={field} className={`grid grid-cols-2 text-xs ${idx > 0 ? 'border-t border-gray-400' : ''}`}>
-                      <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9'}}>{label}</div>
-                      <div className="p-1 bg-white">
-                        <input type="text" value={data[field] || ''}
-                          onChange={(e) => { const v = e.target.value; setHandoverData(prev => ({ ...prev, [day]: { ...prev[day], [shift]: { ...prev[day]?.[shift], [field]: v } } })); }}
-                          className={`w-full text-xs focus:outline-none p-0 ${
-                            field === 'completedPPM' && data.plannedPPM && data.completedPPM
-                              ? parseFloat(data.completedPPM) < parseFloat(data.plannedPPM) ? 'bg-red-300' : 'bg-green-300'
-                              : ''
-                          }`}
-                          style={{ border: 'none', background: field === 'completedPPM' && data.plannedPPM && data.completedPPM ? undefined : 'transparent', fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: '600', color: '#1f4e3d' }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* H&S */}
-              <div className="mb-4">
-                <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>Health & Safety</div>
-                <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
-                  {[{ label: 'Accidents', field: 'accidents' }, { label: 'Near Misses', field: 'nearMisses' }].map(({ label, field }, idx) => (
-                    <div key={field} className={`grid grid-cols-2 text-xs ${idx > 0 ? 'border-t border-gray-400' : ''}`}>
-                      <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9'}}>{label}</div>
-                      <div className="p-1 bg-white">
-                        <input type="text" value={data[field] || ''}
-                          onChange={(e) => { const v = e.target.value; setHandoverData(prev => ({ ...prev, [day]: { ...prev[day], [shift]: { ...prev[day]?.[shift], [field]: v } } })); }}
-                          className="w-full text-xs border-0 focus:outline-none p-0"
-                          style={{ fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: '600', color: '#1f4e3d' }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* Team */}
-              <div className="mb-4">
-                <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>Team Information</div>
-                <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
-                  <div className="grid grid-cols-2 text-xs">
-                    <div className="p-1 border-r border-gray-400 font-medium" style={{backgroundColor: '#d1eee9'}}>TEAM</div>
-                    <div className="p-1 font-bold text-center">
-                      <select value={data.teamColor || 'YELLOW'}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          const newEngineers = teamEngineers[v].map(name => ({ name, status: '', timeBooked: '', breakdown: '', completedPPM: '' }));
-                          setHandoverData(prev => ({ ...prev, [day]: { ...prev[day], [shift]: { ...prev[day]?.[shift], teamColor: v, engineers: newEngineers } } }));
-                        }}
-                        className="w-full text-xs border-0 focus:outline-none font-bold text-center"
-                        style={{ backgroundColor: data.teamColor === 'RED' ? '#ff9999' : data.teamColor === 'BLUE' ? '#6699ff' : data.teamColor === 'GREEN' ? '#99ff99' : data.teamColor === 'ORANGE' ? '#ffaa00' : '#ffff66' }}>
-                        <option value="YELLOW" style={{backgroundColor: '#ffff66', color: 'black'}}>YELLOW</option>
-                        <option value="BLUE" style={{backgroundColor: '#6699ff', color: 'black'}}>BLUE</option>
-                        <option value="GREEN" style={{backgroundColor: '#99ff99', color: 'black'}}>GREEN</option>
-                        <option value="RED" style={{backgroundColor: '#ff9999', color: 'black'}}>RED</option>
-                        <option value="ORANGE" style={{backgroundColor: '#ffaa00', color: 'black'}}>ORANGE</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {/* Engineers */}
-              <div className="mb-4">
-                <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
-                  <div className="grid grid-cols-12 text-xs font-bold text-white" style={{backgroundColor: '#008080'}}>
-                    <div className="col-span-3 p-1 border-r border-gray-400 text-center">Engineers</div>
-                    <div className="col-span-2 p-1 border-r border-gray-400 text-center">Status</div>
-                    <div className="col-span-2 p-1 border-r border-gray-400 text-center">Time Booked</div>
-                    <div className="col-span-3 p-1 border-r border-gray-400 text-center">Breakdown</div>
-                    <div className="col-span-2 p-1 text-center">PPM</div>
-                  </div>
-                  {data.engineers && data.engineers.map((engineer, index) => (
-                    <div key={`${shift}-${index}`} className="grid grid-cols-12 text-xs border-t border-gray-400">
-                      <div className="col-span-3 p-1 bg-white border-r border-gray-400 font-medium text-xs whitespace-nowrap overflow-hidden text-ellipsis">{engineer.name}</div>
-                      <div className="col-span-2 p-1 bg-white border-r border-gray-400">
-                        <select value={engineer.status || ''}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setHandoverData(prev => {
-                              const nd = { ...prev };
-                              if (!nd[day]) nd[day] = {};
-                              if (!nd[day][shift]) nd[day][shift] = {};
-                              if (!nd[day][shift].engineers) nd[day][shift].engineers = [];
-                              if (!nd[day][shift].engineers[index]) nd[day][shift].engineers[index] = {};
-                              nd[day][shift].engineers[index] = { ...nd[day][shift].engineers[index], status: v };
-                              return nd;
-                            });
-                          }}
-                          className={`w-full text-xs border-0 focus:outline-none p-1 font-medium rounded ${
-                            engineer.status === 'Onsite' ? 'bg-green-400 text-black' :
-                            engineer.status === 'Day off' ? 'bg-orange-400 text-black' :
-                            engineer.status === 'Sick Leave' ? 'bg-red-500 text-white' :
-                            engineer.status === 'Training' ? 'bg-green-700 text-white' :
-                            engineer.status === 'Shift Swap' ? 'bg-green-700 text-white' : 'bg-gray-100 text-black'}`}>
-                          <option value="" className="bg-white text-black">Select Status</option>
-                          <option value="Onsite" className="bg-green-400 text-black">Onsite</option>
-                          <option value="Day off" className="bg-orange-400 text-black">Day off</option>
-                          <option value="Sick Leave" className="bg-red-500 text-white">Sick Leave</option>
-                          <option value="Training" className="bg-green-700 text-white">Training</option>
-                          <option value="Shift Swap" className="bg-green-700 text-white">Shift Swap</option>
-                        </select>
-                      </div>
-                      <div className="col-span-2 p-1 bg-white border-r border-gray-400 flex items-center">
-                        <div className={`w-full text-xs p-1 rounded text-center font-semibold ${
-                          engineer.timeBooked && engineer.timeBooked !== '0%' && engineer.timeBooked !== '' ?
-                            (parseInt(engineer.timeBooked) === 100 ? 'bg-green-100 text-green-800' :
-                             parseInt(engineer.timeBooked) >= 80 ? 'bg-yellow-100 text-yellow-800' :
-                             parseInt(engineer.timeBooked) > 0 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-600') :
-                            'bg-gray-100 text-gray-600'}`}>
-                          {engineer.timeBooked && engineer.timeBooked !== '' ? engineer.timeBooked : '0%'}
-                          {engineer.timeBooked && engineer.timeBooked !== '0%' && engineer.timeBooked !== '' && engineer.totalHours
-                            ? ` (${parseFloat(engineer.totalHours).toFixed(2)}h)`
-                            : engineer.timeBooked === '0%' || !engineer.timeBooked ? ' (0.00h)' : ''}
-                        </div>
-                      </div>
-                      <div className="col-span-3 p-1 bg-white border-r border-gray-400">
-                        <input type="text" value={engineer.breakdown || ''}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setHandoverData(prev => {
-                              const nd = { ...prev };
-                              if (!nd[day]) nd[day] = {};
-                              if (!nd[day][shift]) nd[day][shift] = {};
-                              if (!nd[day][shift].engineers) nd[day][shift].engineers = [];
-                              if (!nd[day][shift].engineers[index]) nd[day][shift].engineers[index] = {};
-                              nd[day][shift].engineers[index] = { ...nd[day][shift].engineers[index], breakdown: v };
-                              return nd;
-                            });
-                          }}
-                          className="w-full text-xs border-0 focus:outline-none p-1 bg-gray-50 rounded text-center"
-                          style={{ fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: '600', color: '#1f4e3d' }} />
-                      </div>
-                      <div className="col-span-2 p-1 bg-white">
-                        <input type="text" value={engineer.completedPPM || ''}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setHandoverData(prev => {
-                              const nd = { ...prev };
-                              if (!nd[day]) nd[day] = {};
-                              if (!nd[day][shift]) nd[day][shift] = {};
-                              if (!nd[day][shift].engineers) nd[day][shift].engineers = [];
-                              if (!nd[day][shift].engineers[index]) nd[day][shift].engineers[index] = {};
-                              nd[day][shift].engineers[index] = { ...nd[day][shift].engineers[index], completedPPM: v };
-                              return nd;
-                            });
-                          }}
-                          className="w-full text-xs border-0 focus:outline-none p-1 bg-gray-50 rounded text-center"
-                          style={{ fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: '600', color: '#1f4e3d' }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Shift Overview */}
-            <div className="col-span-4">
-              <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>SHIFT OVERVIEW</div>
-              <div className="border-4 rounded-b-lg border-t-0 bg-white" style={{borderColor: '#008080', height: 'calc(100% - 56px)'}}>
-                <textarea value={data.additionalInfo || ''}
-                  onChange={(e) => { const v = e.target.value; setHandoverData(prev => ({ ...prev, [day]: { ...prev[day], [shift]: { ...prev[day]?.[shift], additionalInfo: v } } })); }}
-                  className="w-full h-full text-xs p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-left border-0"
-                  style={{ minHeight: '500px', border: 'none', outline: 'none', fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: '600', color: '#1f4e3d' }} />
-              </div>
-            </div>
-
-            <div className="col-span-3">
-              {/* Random Stock Check */}
-              <div className="mb-4">
-                <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>RANDOM STOCK CHECK</div>
-                <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
-                  <div className="grid grid-cols-4 gap-0" style={{backgroundColor: '#d1eee9'}}>
-                    <div className="border-r border-gray-400 p-1 text-xs font-bold text-center">LOCATION</div>
-                    <div className="border-r border-gray-400 p-1 text-xs font-bold text-center">CODE</div>
-                    <div className="border-r border-gray-400 p-1 text-xs font-bold text-center">CMMS QTY</div>
-                    <div className="p-1 text-xs font-bold text-center">LOC QTY</div>
-                  </div>
-                  {Array(5).fill(0).map((_, rowIndex) => (
-                    <div key={`stock-${rowIndex}`} className="grid grid-cols-4 gap-0">
-                      {[0,1,2,3].map(colOffset => (
-                        <div key={colOffset} className={`${colOffset < 3 ? 'border-r' : ''} border-b border-gray-300 h-8`}>
-                          <input
-                            type={colOffset >= 2 ? 'number' : 'text'}
-                            value={data.randomStockCheck?.[rowIndex * 4 + colOffset] || ''}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setHandoverData(prev => {
-                                const nd = { ...prev };
-                                if (!nd[day]) nd[day] = {};
-                                if (!nd[day][shift]) nd[day][shift] = {};
-                                if (!nd[day][shift].randomStockCheck) nd[day][shift].randomStockCheck = Array(20).fill('');
-                                const arr = [...nd[day][shift].randomStockCheck];
-                                arr[rowIndex * 4 + colOffset] = v;
-                                nd[day][shift].randomStockCheck = arr;
-                                return nd;
-                              });
-                            }}
-                            className={`w-full h-full text-xs focus:outline-none p-1 ${colOffset >= 2 ? 'text-center' : ''} ${
-                              colOffset === 3 && data.randomStockCheck?.[rowIndex*4+2] && data.randomStockCheck?.[rowIndex*4+3] &&
-                              parseFloat(data.randomStockCheck[rowIndex*4+3]) < parseFloat(data.randomStockCheck[rowIndex*4+2]) ? 'bg-red-300' : ''}`}
-                            style={{ border: 'none', background: colOffset < 2 ? 'transparent' : undefined, fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: '600', color: '#1f4e3d' }} />
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Five Points Shift Checklist */}
-              <div className="mb-4">
-                <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>FIVE POINTS SHIFT CHECKLIST</div>
-                <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
-                  {[
-                    'Shift report complete?',
-                    'All handover topics discussed?',
-                    'Shift handover checklist complete?',
-                    'Shift process confirmation complete?',
-                    'Knapp area returned to 5S picture standard?'
-                  ].map((item, index) => {
-                    const isChecked = data.endOfShiftChecklist?.[index] || false;
-                    return (
-                      <div key={`checklist-${index}`}
-                        className={`flex items-start p-2 border-b border-gray-200 last:border-b-0 cursor-pointer transition-colors ${isChecked ? 'bg-green-100' : 'hover:bg-gray-50'}`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          const lockedScroll = window.pageYOffset;
-                          const nextVal = !isChecked;
-                          document.documentElement.style.scrollBehavior = 'auto';
-                          window.scrollTo(0, lockedScroll);
-                          setHandoverData(prev => {
-                            const nd = { ...prev };
-                            if (!nd[day]) nd[day] = {};
-                            if (!nd[day][shift]) nd[day][shift] = {};
-                            if (!nd[day][shift].endOfShiftChecklist) nd[day][shift].endOfShiftChecklist = Array(7).fill(false);
-                            const arr = [...nd[day][shift].endOfShiftChecklist];
-                            arr[index] = nextVal;
-                            nd[day][shift].endOfShiftChecklist = arr;
-                            return nd;
-                          });
-                          requestAnimationFrame(() => {
-                            requestAnimationFrame(() => {
-                              window.scrollTo(0, lockedScroll);
-                            });
-                          });
-                        }}>
-                        <input type="checkbox" id={`${shift}-checklist-${index}`}
-                          checked={isChecked}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            const lockedScroll = window.pageYOffset;
-                            const checked = e.target.checked;
-                            document.documentElement.style.scrollBehavior = 'auto';
-                            window.scrollTo(0, lockedScroll);
-                            setHandoverData(prev => {
-                              const nd = { ...prev };
-                              if (!nd[day]) nd[day] = {};
-                              if (!nd[day][shift]) nd[day][shift] = {};
-                              if (!nd[day][shift].endOfShiftChecklist) nd[day][shift].endOfShiftChecklist = Array(7).fill(false);
-                              const arr = [...nd[day][shift].endOfShiftChecklist];
-                              arr[index] = checked;
-                              nd[day][shift].endOfShiftChecklist = arr;
-                              return nd;
-                            });
-                            requestAnimationFrame(() => {
-                              requestAnimationFrame(() => {
-                                window.scrollTo(0, lockedScroll);
-                              });
-                            });
-                          }}
-                          className="mr-3 mt-1 w-4 h-4 flex-shrink-0"
-                          style={{ accentColor: '#008080' }}
-                          onClick={(e) => e.stopPropagation()} />
-                        <label htmlFor={`${shift}-checklist-${index}`}
-                          className={`text-xs cursor-pointer flex-1 leading-relaxed font-medium ${isChecked ? 'text-green-700' : 'text-gray-700'}`}
-                          style={{ fontFamily: 'Aptos, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: isChecked ? '600' : '500' }}
-                          onClick={(e) => e.stopPropagation()}>
-                          {index + 1}. {item}
-                        </label>
-                      </div>
-                    );
-                  })}
-                  <div className="p-3 bg-gray-50 border-t border-gray-200">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-medium text-gray-600">Progress: {data.endOfShiftChecklist?.filter(Boolean).length || 0}/5</span>
-                      <span className="text-xs font-medium text-gray-600">{Math.round(((data.endOfShiftChecklist?.filter(Boolean).length || 0) / 5) * 100)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-300 rounded-full h-2">
-                      <div className="h-2 rounded-full transition-all duration-300"
-                        style={{
-                          width: `${((data.endOfShiftChecklist?.filter(Boolean).length || 0) / 5) * 100}%`,
-                          backgroundColor: ((data.endOfShiftChecklist?.filter(Boolean).length || 0) / 5) * 100 === 100 ? '#10b981' : '#008080'
-                        }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="text-center py-4 px-4 font-bold text-sm text-white rounded-b-lg" style={{backgroundColor: '#008080'}}></div>
-      </div>
-    );
-  };
-
+  
   // ---- WEEKLY ACTIONS HELPERS ----
   const actionCategories = [
     { key: 'maintenance', label: 'MAINTENANCE', color: '#008080', borderColor: 'border-teal-700', itemBorderColor: 'border-teal-600', btnBg: 'bg-teal-600', removeBg: 'bg-teal-700', fileBorder: 'focus:border-teal-500', fileBg: 'file:bg-teal-600', fileHover: 'hover:file:bg-teal-700', imgBorder: 'border-teal-200', textColor: '#1f4e3d', placeholder: 'Describe the maintenance action...' },
@@ -2638,9 +2693,9 @@ const carryForward5SActions = async () => {
               </div>
             ) : (
               <>
-                <ShiftSection shift="earlyShift" shiftName="Early Shift" data={handoverData[days[currentDay] + 'Shift']?.earlyShift} day={days[currentDay] + 'Shift'} />
-                <ShiftSection shift="lateShift" shiftName="Late Shift" data={handoverData[days[currentDay] + 'Shift']?.lateShift} day={days[currentDay] + 'Shift'} />
-                <ShiftSection shift="nightShift" shiftName="Night Shift" data={handoverData[days[currentDay] + 'Shift']?.nightShift} day={days[currentDay] + 'Shift'} />
+                <ShiftSection shift="earlyShift" shiftName="Early Shift" data={handoverData[days[currentDay] + 'Shift']?.earlyShift} day={days[currentDay] + 'Shift'} setHandoverData={setHandoverData} teamEngineers={teamEngineers} />
+                <ShiftSection shift="lateShift" shiftName="Late Shift" data={handoverData[days[currentDay] + 'Shift']?.lateShift} day={days[currentDay] + 'Shift'} setHandoverData={setHandoverData} teamEngineers={teamEngineers} />
+                <ShiftSection shift="nightShift" shiftName="Night Shift" data={handoverData[days[currentDay] + 'Shift']?.nightShift} day={days[currentDay] + 'Shift'} setHandoverData={setHandoverData} teamEngineers={teamEngineers} />
               </>
             )}
           </div>
@@ -2708,6 +2763,8 @@ const OnlineShiftHandoverSystem = () => {
     </>
   );
 };
+
+
 // ============================================================
 // ERROR BOUNDARY
 // ============================================================
@@ -2725,42 +2782,12 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{
-          minHeight: '100vh',
-          background: 'linear-gradient(135deg, #0d4d4d 0%, #0d4d4d 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px'
-        }}>
-          <div style={{
-            background: 'rgba(255,255,255,0.1)',
-            borderRadius: '12px',
-            padding: '40px',
-            textAlign: 'center',
-            maxWidth: '400px'
-          }}>
-            <div style={{fontSize: '48px', marginBottom: '16px'}}>⚠️</div>
-            <h2 style={{color: 'white', fontSize: '22px', fontWeight: 'bold', marginBottom: '12px'}}>
-              Something went wrong
-            </h2>
-            <p style={{color: 'rgba(255,255,255,0.8)', fontSize: '14px', marginBottom: '24px'}}>
-              An unexpected error occurred. Please refresh the page. If the problem persists, contact your administrator.
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              style={{
-                background: '#008080',
-                color: 'white',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}>
-              Refresh Page
-            </button>
+        <div style={{minHeight:'100vh',background:'linear-gradient(135deg, #0d4d4d 0%, #0d4d4d 100%)',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
+          <div style={{background:'rgba(255,255,255,0.1)',borderRadius:'12px',padding:'40px',textAlign:'center',maxWidth:'400px'}}>
+            <div style={{fontSize:'48px',marginBottom:'16px'}}>⚠️</div>
+            <h2 style={{color:'white',fontSize:'22px',fontWeight:'bold',marginBottom:'12px'}}>Something went wrong</h2>
+            <p style={{color:'rgba(255,255,255,0.8)',fontSize:'14px',marginBottom:'24px'}}>An unexpected error occurred. Please refresh the page. If the problem persists, contact your administrator.</p>
+            <button onClick={() => window.location.reload()} style={{background:'#008080',color:'white',border:'none',padding:'12px 24px',borderRadius:'8px',fontSize:'14px',fontWeight:'600',cursor:'pointer'}}>Refresh Page</button>
           </div>
         </div>
       );
@@ -2777,7 +2804,7 @@ root.render(
     React.createElement(App)
   )
 );
-</script>
+  </script>
 
   <script>
   document.addEventListener('focusin', function(e) {
