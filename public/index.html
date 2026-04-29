@@ -924,7 +924,7 @@ const DataImportSection = ({ handoverData, setHandoverData, currentWeek, current
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-green-600">{parsedData.summary.avgTimeBooked}%</div>
-                  <div className="text-sm text-gray-600">Avg Time Booked</div>
+                  <div className="text-sm text-gray-600">Avg Utilization </div>
                 </div>
                 <div>
                   <div className="text-lg font-bold text-purple-600">{parsedData.summary.matchedRows}/{parsedData.summary.processedRows}</div>
@@ -943,7 +943,7 @@ const DataImportSection = ({ handoverData, setHandoverData, currentWeek, current
                     <th className="border border-teal-800 px-3 py-2 text-left">Engineer</th>
                     <th className="border border-teal-800 px-3 py-2 text-center">PPM Completed</th>
                     <th className="border border-teal-800 px-3 py-2 text-center">Breakdowns</th>
-                    <th className="border border-teal-800 px-3 py-2 text-center">Time Booked</th>
+                    <th className="border border-teal-800 px-3 py-2 text-center">Utilization </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1111,7 +1111,7 @@ const ShiftSection = ({ shift, shiftName, data, day, setHandoverData, teamEngine
                 <div className="grid grid-cols-12 text-xs font-bold text-white" style={{backgroundColor: '#008080'}}>
                   <div className="col-span-3 p-1 border-r border-gray-400 text-center">Engineers</div>
                   <div className="col-span-2 p-1 border-r border-gray-400 text-center">Status</div>
-                  <div className="col-span-2 p-1 border-r border-gray-400 text-center">Time Booked</div>
+                  <div className="col-span-2 p-1 border-r border-gray-400 text-center">Utilization </div>
                   <div className="col-span-3 p-1 border-r border-gray-400 text-center">Breakdown</div>
                   <div className="col-span-2 p-1 text-center">PPM</div>
                 </div>
