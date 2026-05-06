@@ -1341,10 +1341,9 @@ const ShiftSection = ({ shift, shiftName, data, day, setHandoverData, teamEngine
                 </div>
               </div>
 
-      </div>
+              {/* Top Breakdowns By Frequency */}
 
-        {/* Top Breakdowns By Frequency */}
-              {(() => {
+               {(() => {
                 const topAssets = data.topBreakdownAssets && data.topBreakdownAssets.length > 0
                   ? data.topBreakdownAssets
                   : [{asset: '', count: ''}, {asset: '', count: ''}, {asset: '', count: ''}];
