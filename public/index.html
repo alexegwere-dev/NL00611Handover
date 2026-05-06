@@ -2679,9 +2679,9 @@ const carryForward5SActions = async () => {
               </div>
             ) : (
               <>
-                <ShiftSection shift="earlyShift" shiftName="Early Shift" data={handoverData[days[currentDay] + 'Shift']?.earlyShift || {}} day={days[currentDay] + 'Shift'} setHandoverData={setHandoverData} teamEngineers={teamEngineers} />
-<ShiftSection shift="lateShift" shiftName="Late Shift" data={handoverData[days[currentDay] + 'Shift']?.lateShift || {}} day={days[currentDay] + 'Shift'} setHandoverData={setHandoverData} teamEngineers={teamEngineers} />
-<ShiftSection shift="nightShift" shiftName="Night Shift" data={handoverData[days[currentDay] + 'Shift']?.nightShift || {}} day={days[currentDay] + 'Shift'} setHandoverData={setHandoverData} teamEngineers={teamEngineers} />
+<ShiftSection shift="earlyShift" shiftName="Early Shift" data={handoverData[days[currentDay] + 'Shift']?.earlyShift} day={days[currentDay] + 'Shift'} setHandoverData={setHandoverData} teamEngineers={teamEngineers} />
+<ShiftSection shift="lateShift" shiftName="Late Shift" data={handoverData[days[currentDay] + 'Shift']?.lateShift} day={days[currentDay] + 'Shift'} setHandoverData={setHandoverData} teamEngineers={teamEngineers} />
+<ShiftSection shift="nightShift" shiftName="Night Shift" data={handoverData[days[currentDay] + 'Shift']?.nightShift} day={days[currentDay] + 'Shift'} setHandoverData={setHandoverData} teamEngineers={teamEngineers} />
               </>
             )}
           </div>
