@@ -2664,7 +2664,7 @@ const ShiftHandoverSystem = ({ user, onLogout, onUserManagement }) => {
                 </div>
               </div>
             ) : (
-              {(() => {
+              (() => {
                 const defaultShiftData = (color) => ({
                   plannedPPM: '', completedPPM: '', totalBreakdowns: '', accidents: '0', nearMisses: '0',
                   teamColor: color || 'YELLOW',
@@ -2679,7 +2679,7 @@ const ShiftHandoverSystem = ({ user, onLogout, onUserManagement }) => {
                     <ShiftSection shift="nightShift" shiftName="Night Shift" data={dayData.nightShift || defaultShiftData(dayData.nightShift?.teamColor)} day={days[currentDay] + 'Shift'} setHandoverData={setHandoverData} teamEngineers={teamEngineers} />
                   </>
                 );
-              })()}
+              })()
             )}
           </div>
         </div>
