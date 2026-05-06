@@ -1284,11 +1284,7 @@ const ShiftSection = ({ shift, shiftName, data, day, setHandoverData, teamEngine
                           nd[day][shift].endOfShiftChecklist = arr;
                           return nd;
                         });
-                        requestAnimationFrame(() => {
-                          requestAnimationFrame(() => {
-                            window.scrollTo(0, lockedScroll);
-                          });
-                        });
+                        requestAnimationFrame(() => { requestAnimationFrame(() => { window.scrollTo(0, lockedScroll); }); });
                       }}>
                       <input type="checkbox" id={`${shift}-checklist-${index}`}
                         checked={isChecked}
@@ -1308,11 +1304,7 @@ const ShiftSection = ({ shift, shiftName, data, day, setHandoverData, teamEngine
                             nd[day][shift].endOfShiftChecklist = arr;
                             return nd;
                           });
-                          requestAnimationFrame(() => {
-                            requestAnimationFrame(() => {
-                              window.scrollTo(0, lockedScroll);
-                            });
-                          });
+                          requestAnimationFrame(() => { requestAnimationFrame(() => { window.scrollTo(0, lockedScroll); }); });
                         }}
                         className="mr-3 mt-1 w-4 h-4 flex-shrink-0"
                         style={{ accentColor: '#008080' }}
@@ -1340,34 +1332,35 @@ const ShiftSection = ({ shift, shiftName, data, day, setHandoverData, teamEngine
                   </div>
                 </div>
               </div>
-
-      </div>
-
-        {/* Top Breakdowns By Frequency */}
-              {data.topBreakdownAssets && data.topBreakdownAssets.length > 0 && (
-                <div className="mb-4">
-                  <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>TOP BREAKDOWNS BY FREQUENCY</div>
-                  <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
-                    <div className="grid grid-cols-4 gap-0" style={{backgroundColor: '#d1eee9'}}>
-                      <div className="col-span-3 p-1 border-r border-gray-400 text-xs font-bold text-center">Assets</div>
-                      <div className="p-1 text-xs font-bold text-center">Frequency</div>
-                    </div>
-                    {data.topBreakdownAssets.map((item, idx) => (
-                      <div key={idx} className={`grid grid-cols-4 gap-0 border-t border-gray-300 text-xs ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                        <div className="col-span-3 p-1 border-r border-gray-300 font-medium text-xs">{item.asset}</div>
-                        <div className="p-1 text-center font-bold" style={{color: item.count >= 10 ? '#dc2626' : item.count >= 5 ? '#d97706' : '#1f4e3d'}}>{item.count}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
+
+            {/* Top Breakdowns By Frequency */}
+            {data.topBreakdownAssets && data.topBreakdownAssets.length > 0 && (
+              <div className="mb-4">
+                <div className="text-center py-1 px-2 font-bold text-sm text-white" style={{backgroundColor: '#008080'}}>TOP BREAKDOWNS BY FREQUENCY</div>
+                <div className="border-4 rounded-b-lg border-t-0" style={{borderColor: '#008080'}}>
+                  <div className="grid grid-cols-4 gap-0" style={{backgroundColor: '#d1eee9'}}>
+                    <div className="col-span-3 p-1 border-r border-gray-400 text-xs font-bold text-center">Assets</div>
+                    <div className="p-1 text-xs font-bold text-center">Frequency</div>
+                  </div>
+                  {data.topBreakdownAssets.map((item, idx) => (
+                    <div key={idx} className={`grid grid-cols-4 gap-0 border-t border-gray-300 text-xs ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                      <div className="col-span-3 p-1 border-r border-gray-300 font-medium text-xs">{item.asset}</div>
+                      <div className="p-1 text-center font-bold" style={{color: item.count >= 10 ? '#dc2626' : item.count >= 5 ? '#d97706' : '#1f4e3d'}}>{item.count}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
-        <div className="text-center py-4 px-4 font-bold text-sm text-white rounded-b-lg" style={{backgroundColor: '#008080'}}></div>
       </div>
-    );
-  };
+      <div className="text-center py-4 px-4 font-bold text-sm text-white rounded-b-lg" style={{backgroundColor: '#008080'}}></div>
+    </div>
+  );
+};
+
+
 // ============================================================
 // MAIN SHIFT HANDOVER SYSTEM
 // ============================================================
